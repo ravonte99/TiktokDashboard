@@ -82,8 +82,6 @@ export const MyContentDialog: React.FC = () => {
   const currentLink = hasLink ? myContentBox.links[0] : null;
   const isReady = !!myContentBox.aiSummary; // Renamed for clarity
   
-  // ... rest of the component ...
-
   const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLinkUrl || !myContentBox) return;
@@ -122,6 +120,30 @@ export const MyContentDialog: React.FC = () => {
         console.error("Error fetching metadata", error);
     } finally {
         setIsFetching(false);
+    }
+  };
+
+  const handleRefreshLink = async () => {
+    if (!myContentBox || !currentLink) return;
+    setIsFetching(true);
+    try {
+      const res = await fetch('/api/metadata', {
+        method: 'POST',
+        body: JSON.stringify({ url: currentLink.url }),
+      });
+      const meta = await res.json();
+      if (meta.title) {
+        await updateLinkInBox(myContentBox.id, currentLink.id, {
+          title: meta.title,
+          description: meta.description
+        });
+      }
+    } catch (error) {
+      console.error("Error refreshing metadata", error);
+    } finally {
+      setIsFetching(false);
+      // Trigger re-summary
+      handleSummarize(myContentBox);
     }
   };
 
@@ -180,9 +202,14 @@ export const MyContentDialog: React.FC = () => {
                                     <a href={currentLink.url} target="_blank" rel="noreferrer" className="text-xs text-muted-foreground hover:underline truncate">{currentLink.url}</a>
                                 </div>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={handleRemove}>
-                                <Trash2 className="w-4 h-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleRefreshLink} title="Refresh Metadata">
+                                    <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={handleRemove}>
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </div>
                         </div>
                         
                         <div className="mt-4 pt-4 border-t border-border/50 group/summary">
@@ -282,4 +309,3 @@ export const MyContentDialog: React.FC = () => {
     </Dialog>
   );
 };
-
