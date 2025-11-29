@@ -23,18 +23,25 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
   const [refreshingLinkIds, setRefreshingLinkIds] = useState<string[]>([]);
 
   // Effect to trigger auto-summarization when links change
-  // We use a ref to track previous link count/content to avoid loops if we were to add summary to dependency
-  // But simpler: Just trigger it after add/delete actions explicitly or use a debounce effect.
-  // Since we want it "automatic", let's create a debounced effect that watches box.links
+  const linksSignature = box.links.map(l => l.url).join(',');
+  const hasMounted = useRef(false);
+
   useEffect(() => {
+    // Skip the very first run on mount if we already have a summary
+    // This prevents re-summarizing everything just because the page refreshed
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      if (box.aiSummary) return;
+    }
+
     const timer = setTimeout(() => {
       if (box.links.length > 0) {
-        handleSummarize(true); // Pass true to indicate "silent" or "auto" mode if needed
+        handleSummarize(true); 
       }
-    }, 2000); // Wait 2s after last link change to summarize
+    }, 2000); 
 
     return () => clearTimeout(timer);
-  }, [box.links.length, box.links.map(l => l.url).join(',')]); 
+  }, [box.links.length, linksSignature]); 
   // Dependency on length and URLs. Note: deeply nested dependency might be heavy but fine for small lists.
 
   const handleAddLinkSmart = async (e: React.FormEvent) => {
