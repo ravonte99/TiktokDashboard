@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { Send, Bot, User, Sparkles, ArrowRight, Loader2, Box, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea"; // Assuming you have or can make a Textarea component, or use standard
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -133,9 +133,9 @@ export const ChatInterface: React.FC = () => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 relative min-h-0">
-        <ScrollArea className="h-full p-4 pb-24" ref={scrollRef}>
-          <div className="flex flex-col gap-6 max-w-2xl mx-auto pb-8">
+      <div className="flex-1 min-h-0 flex flex-col">
+        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+          <div className="flex flex-col gap-6 max-w-2xl mx-auto pb-4">
             {chatHistory.length === 0 && (
               <div className="flex flex-col items-center justify-center text-center mt-20 gap-4">
                 <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center animate-pulse">
@@ -205,21 +205,27 @@ export const ChatInterface: React.FC = () => {
       </div>
 
       {/* Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-background z-30 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-        <form onSubmit={handleSend} className="relative max-w-2xl mx-auto flex items-center gap-2">
+      <div className="p-4 border-t border-border bg-background z-30 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        <form onSubmit={handleSend} className="relative max-w-2xl mx-auto flex items-end gap-2">
           <div className="relative flex-1">
-            <Input
+            <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend(e);
+                }
+              }}
               placeholder={selectedBoxes.length > 0 ? "Ask about the selected content..." : "Ask a general question..."}
-              className="pr-10 h-12 bg-muted/30 border-input/50 focus:bg-background transition-colors rounded-xl z-20 relative"
+              className="min-h-[48px] max-h-[150px] pr-12 bg-muted/30 border-input/50 focus:bg-background transition-colors rounded-xl resize-none py-3"
               disabled={isLoading}
             />
             <Button 
               type="submit" 
               size="icon"
               disabled={!input.trim() || isLoading}
-              className="absolute right-1.5 top-1.5 h-9 w-9 rounded-lg transition-all z-30"
+              className="absolute right-2 bottom-2 h-8 w-8 rounded-lg transition-all"
             >
               <ArrowRight className="w-4 h-4" />
             </Button>
