@@ -41,6 +41,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Messages are required' }, { status: 400 });
     }
 
+    console.log('--- Agentic Chat Request Started ---');
+    console.log('User Message:', messages[messages.length - 1].content);
+    console.log('Context Boxes Available:', context.map((b: any) => b.name).join(', '));
+
     // 1. Define the Tool for the Manager
     const askBoxTool = {
       name: "ask_box",
@@ -98,6 +102,10 @@ Your goal is to answer the user's questions by orchestrating these contexts.
     let response = await result.response;
     let functionCalls = response.functionCalls();
 
+    if (!functionCalls || functionCalls.length === 0) {
+        console.log('Manager decided NOT to call any tools for this request.');
+    }
+
     // Limit max turns to prevent infinite loops
     let turns = 0;
     const MAX_TURNS = 5;
@@ -117,6 +125,7 @@ Your goal is to answer the user's questions by orchestrating these contexts.
             toolResult = await queryBoxAgent(targetBox, question);
             console.log(`Box "${targetBox.name}" replied:`, toolResult);
           } else {
+            console.warn(`Manager tried to ask unknown Box ID: ${box_id}`);
             toolResult = `Error: Box with ID ${box_id} not found.`;
           }
 
@@ -136,6 +145,7 @@ Your goal is to answer the user's questions by orchestrating these contexts.
     }
 
     const reply = response.text();
+    console.log('--- Agentic Chat Request Finished ---');
     return NextResponse.json({ reply });
 
   } catch (error: any) {
