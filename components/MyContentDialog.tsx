@@ -177,7 +177,7 @@ export const MyContentDialog: React.FC = () => {
            )}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
               <User className="w-5 h-5 text-primary" />
@@ -188,7 +188,7 @@ export const MyContentDialog: React.FC = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="py-2 w-full overflow-hidden">
             {hasLink && currentLink ? (
                 <div className="flex flex-col gap-4">
                     <div className="bg-muted/40 p-4 rounded-lg border border-border">
