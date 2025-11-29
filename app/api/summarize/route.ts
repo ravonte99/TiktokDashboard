@@ -17,9 +17,16 @@ Your task is to analyze a collection of resources (videos/posts) in a category c
 Here are the resources:
 ${links.map((l: any, i: number) => `${i+1}. [${l.type}] ${l.title || 'Untitled'} (${l.url}) - ${l.description || ''}`).join('\n')}
 
-Please generate a concise but insightful summary (max 150 words) of what this collection represents. 
-Highlight common themes, specific topics covered, or the potential "vibe" of this content. 
-This summary will be used to provide context to another AI chatbot.`;
+Please create a "Context Profile" for this collection.
+The goal is NOT just to summarize, but to extract key intelligence that will help another AI Assistant understand the user's intent, style, and preferences represented by this box.
+
+Focus on:
+1. Core Themes & Topics (What is this actually about?)
+2. Content Style/Vibe (e.g., educational, chaotic, aesthetic, minimal, high-energy)
+3. Key Entities (Specific people, brands, tools, or formats mentioned)
+4. Strategic Value (Inferred reason for saving: e.g., "Editing inspiration", "Competitor research", "Trending audio")
+
+Format as a concise, information-dense paragraph (max 200 words) that serves as "System Instructions" for the other AI. Do not use bullet points, just a dense, rich paragraph.`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); // Switch to Flash for summarization to avoid Rate Limits
 

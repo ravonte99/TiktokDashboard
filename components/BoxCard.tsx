@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, LinkType, LinkItem } from '@/types';
 import { useStore } from '@/store/useStore';
-import { Trash2, Plus, Check, ExternalLink, Youtube, Instagram, Video, Link as LinkIcon, RefreshCw, Sparkles, FileText, User } from 'lucide-react';
+import { Trash2, Plus, Check, ExternalLink, Youtube, Instagram, Video, Link as LinkIcon, RefreshCw, Sparkles, FileText, User, Pencil, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea"; // Ensure you import Textarea
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface BoxCardProps {
@@ -21,6 +22,10 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [isFetchingMeta, setIsFetchingMeta] = useState(false);
   const [refreshingLinkIds, setRefreshingLinkIds] = useState<string[]>([]);
+  
+  // Editing Summary State
+  const [isEditingSummary, setIsEditingSummary] = useState(false);
+  const [editedSummary, setEditedSummary] = useState('');
 
   // Effect to trigger auto-summarization when links change
   const linksSignature = box.links.map(l => l.url + l.description).join(','); // Include description in signature so metadata updates trigger it
@@ -165,6 +170,11 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
     }
   };
 
+  const handleSaveSummary = async () => {
+    await setBoxSummary(box.id, editedSummary);
+    setIsEditingSummary(false);
+  };
+
   const getIcon = (type: LinkType) => {
     switch (type) {
       case 'youtube': return <Youtube className="w-4 h-4 text-red-500" />;
@@ -206,7 +216,7 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
       </CardHeader>
 
       {/* AI Summary Section */}
-      <div className="px-4 py-2 bg-primary/5 border-y border-primary/10 min-h-[60px] flex flex-col justify-center relative">
+      <div className="px-4 py-2 bg-primary/5 border-y border-primary/10 min-h-[60px] flex flex-col justify-center relative group/summary">
          <div className="flex items-center gap-2 mb-1">
             <Sparkles className="w-3 h-3 text-primary" />
             <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">AI Context</span>
@@ -214,16 +224,49 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
             <span className="text-[10px] text-muted-foreground ml-auto">
               {box.lastSummarized ? new Date(box.lastSummarized).toLocaleDateString() : ''}
             </span>
+            {!isEditingSummary && box.aiSummary && (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4 ml-1 opacity-0 group-hover/summary:opacity-100 transition-opacity"
+                    onClick={() => {
+                        setEditedSummary(box.aiSummary || '');
+                        setIsEditingSummary(true);
+                    }}
+                    title="Edit Context"
+                >
+                    <Pencil className="w-3 h-3 text-muted-foreground hover:text-primary" />
+                </Button>
+            )}
          </div>
          
-         {box.aiSummary ? (
-            <p className="text-xs text-muted-foreground line-clamp-3 italic">
-               "{box.aiSummary}"
-            </p>
+         {isEditingSummary ? (
+            <div className="flex flex-col gap-2">
+                <Textarea 
+                    value={editedSummary} 
+                    onChange={(e) => setEditedSummary(e.target.value)} 
+                    className="text-xs min-h-[80px] bg-background/50"
+                    placeholder="Edit context analysis..."
+                />
+                <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setIsEditingSummary(false)}>
+                        <X className="w-3 h-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-primary" onClick={handleSaveSummary}>
+                        <Check className="w-3 h-3" />
+                    </Button>
+                </div>
+            </div>
          ) : (
-            <p className="text-xs text-muted-foreground italic opacity-50">
-               {box.links.length > 0 ? (isSummarizing ? "Generating summary..." : "Waiting for analysis...") : "Add content to generate summary"}
-            </p>
+             box.aiSummary ? (
+                <p className="text-xs text-muted-foreground line-clamp-3 italic hover:line-clamp-none transition-all cursor-text" title="Click to expand">
+                   "{box.aiSummary}"
+                </p>
+             ) : (
+                <p className="text-xs text-muted-foreground italic opacity-50">
+                   {box.links.length > 0 ? (isSummarizing ? "Generating summary..." : "Waiting for analysis...") : "Add content to generate summary"}
+                </p>
+             )
          )}
       </div>
       

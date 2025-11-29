@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Link as LinkIcon, Check, Loader2, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
+import { User, Link as LinkIcon, Check, Loader2, RefreshCw, AlertCircle, Trash2, Pencil, X } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { Box, LinkType } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export const MyContentDialog: React.FC = () => {
   const { boxes, addLinkToBox, updateLinkInBox, removeLinkFromBox, setBoxSummary } = useStore();
@@ -14,6 +15,10 @@ export const MyContentDialog: React.FC = () => {
   const [newLinkType, setNewLinkType] = useState<LinkType>('tiktok');
   const [isFetching, setIsFetching] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
+  
+  // Edit State
+  const [isEditingSummary, setIsEditingSummary] = useState(false);
+  const [editedSummary, setEditedSummary] = useState('');
 
   const myContentBox = boxes.find(b => b.name === "My Content");
   
@@ -62,6 +67,12 @@ export const MyContentDialog: React.FC = () => {
     } finally {
       setIsSummarizing(false);
     }
+  };
+
+  const handleSaveSummary = async () => {
+    if (!myContentBox) return;
+    await setBoxSummary(myContentBox.id, editedSummary);
+    setIsEditingSummary(false);
   };
 
   // Safety check: useStore should ensure this exists, but fallback just in case
@@ -174,7 +185,7 @@ export const MyContentDialog: React.FC = () => {
                             </Button>
                         </div>
                         
-                        <div className="mt-4 pt-4 border-t border-border/50">
+                        <div className="mt-4 pt-4 border-t border-border/50 group/summary">
                             <div className="flex items-center gap-2 mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">AI Status</span>
                                 {isReady ? (
@@ -186,11 +197,47 @@ export const MyContentDialog: React.FC = () => {
                                         <Loader2 className="w-3 h-3 animate-spin" /> {isSummarizing ? "Analyzing..." : "Pending..."}
                                     </span>
                                 )}
+                                {!isEditingSummary && isReady && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 ml-auto opacity-0 group-hover/summary:opacity-100 transition-opacity"
+                                        onClick={() => {
+                                            setEditedSummary(myContentBox.aiSummary || '');
+                                            setIsEditingSummary(true);
+                                        }}
+                                        title="Edit Analysis"
+                                    >
+                                        <Pencil className="w-3 h-3 text-muted-foreground hover:text-primary" />
+                                    </Button>
+                                )}
                             </div>
-                            {myContentBox.aiSummary ? (
-                                <p className="text-xs text-muted-foreground italic line-clamp-3">"{myContentBox.aiSummary}"</p>
+                            
+                            {isEditingSummary ? (
+                                <div className="flex flex-col gap-2">
+                                    <Textarea 
+                                        value={editedSummary} 
+                                        onChange={(e) => setEditedSummary(e.target.value)} 
+                                        className="text-xs min-h-[100px] bg-background/50"
+                                        placeholder="Edit AI context..."
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setIsEditingSummary(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button size="sm" className="h-7 text-xs" onClick={handleSaveSummary}>
+                                            Save Changes
+                                        </Button>
+                                    </div>
+                                </div>
                             ) : (
-                                <p className="text-xs text-muted-foreground italic">Analysis will start automatically...</p>
+                                myContentBox.aiSummary ? (
+                                    <p className="text-xs text-muted-foreground italic line-clamp-3 hover:line-clamp-none transition-all cursor-text">
+                                        "{myContentBox.aiSummary}"
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground italic">Analysis will start automatically...</p>
+                                )
                             )}
                         </div>
                     </div>
