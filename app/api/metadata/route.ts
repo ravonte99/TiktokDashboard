@@ -33,11 +33,14 @@ export async function POST(req: Request) {
             console.log(`Fetching TikTok profile for ${username} using host: ${rapidApiHost}`);
 
             let basePath = '';
+            let idParam = 'unique_id'; // Default for most scrapers
+
             if (rapidApiHost === 'tiktok-api23.p.rapidapi.com') {
                basePath = '/api';
+               idParam = 'uniqueId'; // API23 uses camelCase
             }
 
-            const response = await fetch(`https://${rapidApiHost}${basePath}/user/info?unique_id=${username}`, {
+            const response = await fetch(`https://${rapidApiHost}${basePath}/user/info?${idParam}=${username}`, {
                method: 'GET',
                headers: {
                   'x-rapidapi-key': rapidApiKey,
@@ -60,7 +63,7 @@ export async function POST(req: Request) {
                    try {
                        // Attempt to fetch posts from the same RapidAPI provider
                        console.log(`Fetching recent videos for ${username} via RapidAPI...`);
-                       const postsResponse = await fetch(`https://${rapidApiHost}${basePath}/user/posts?unique_id=${username}&count=10`, {
+                       const postsResponse = await fetch(`https://${rapidApiHost}${basePath}/user/posts?${idParam}=${username}&count=10`, {
                            method: 'GET',
                            headers: {
                                'x-rapidapi-key': rapidApiKey,
