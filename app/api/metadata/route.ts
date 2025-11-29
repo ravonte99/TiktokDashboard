@@ -44,6 +44,7 @@ export async function POST(req: Request) {
                    // Fetch recent videos to give context about content style
                    try {
                        // Attempt to fetch posts from the same RapidAPI provider
+                       console.log(`Fetching recent videos for ${username} via RapidAPI...`);
                        const postsResponse = await fetch(`https://tiktok-scraper7.p.rapidapi.com/user/posts?unique_id=${username}&count=10`, {
                            method: 'GET',
                            headers: {
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
                        if (postsResponse.ok) {
                            const postsData = await postsResponse.json();
                            const videos = postsData.data?.videos;
+                           console.log(`Fetched ${videos?.length || 0} videos for ${username}`);
         
                            if (videos && Array.isArray(videos)) {
                                const videoList = videos.map((v: any) => {
@@ -64,6 +66,8 @@ export async function POST(req: Request) {
                                }).join('\n');
                                description += `\n\nRECENT VIDEOS:\n${videoList}`;
                            }
+                       } else {
+                           console.warn(`RapidAPI posts fetch failed: ${postsResponse.status} ${postsResponse.statusText}`);
                        }
                    } catch (postError) {
                        console.warn('Failed to fetch TikTok posts:', postError);

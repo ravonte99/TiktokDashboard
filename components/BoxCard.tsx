@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, LinkType } from '@/types';
+import { Box, LinkType, LinkItem } from '@/types';
 import { useStore } from '@/store/useStore';
 import { Trash2, Plus, Check, ExternalLink, Youtube, Instagram, Video, Link as LinkIcon, RefreshCw, Sparkles, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -20,6 +20,7 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
   const [newLinkType, setNewLinkType] = useState<LinkType>('youtube');
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [isFetchingMeta, setIsFetchingMeta] = useState(false);
+  const [refreshingLinkIds, setRefreshingLinkIds] = useState<string[]>([]);
 
   // Effect to trigger auto-summarization when links change
   // We use a ref to track previous link count/content to avoid loops if we were to add summary to dependency
@@ -103,6 +104,32 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
     }
   };
 
+  const handleRefreshLink = async (link: LinkItem) => {
+    if (refreshingLinkIds.includes(link.id)) return;
+    
+    setRefreshingLinkIds(prev => [...prev, link.id]);
+    try {
+      const res = await fetch('/api/metadata', {
+        method: 'POST',
+        body: JSON.stringify({ url: link.url }),
+      });
+      const meta = await res.json();
+      
+      if (meta.title) {
+        updateLinkInBox(box.id, link.id, {
+          title: meta.title,
+          description: meta.description
+        });
+      }
+    } catch (e) {
+      console.error("Failed to refresh metadata", e);
+    } finally {
+      setRefreshingLinkIds(prev => prev.filter(id => id !== link.id));
+      // Trigger a summary update to incorporate new metadata
+      handleSummarize(true);
+    }
+  };
+
   const getIcon = (type: LinkType) => {
     switch (type) {
       case 'youtube': return <Youtube className="w-4 h-4 text-red-500" />;
@@ -172,14 +199,26 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
                 )}
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => removeLinkFromBox(box.id, link.id)}
-            >
-              <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
-            </Button>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  onClick={() => handleRefreshLink(link)}
+                  title="Refresh Metadata"
+                >
+                  <RefreshCw className={`w-3 h-3 text-muted-foreground hover:text-primary ${refreshingLinkIds.includes(link.id) ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  onClick={() => removeLinkFromBox(box.id, link.id)}
+                  title="Remove Link"
+                >
+                  <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                </Button>
+            </div>
           </div>
         ))}
         {box.links.length === 0 && (
