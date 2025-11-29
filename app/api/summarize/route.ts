@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 export async function POST(req: Request) {
   try {
@@ -23,19 +21,15 @@ Please generate a concise but insightful summary (max 150 words) of what this co
 Highlight common themes, specific topics covered, or the potential "vibe" of this content. 
 This summary will be used to provide context to another AI chatbot.`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: "You are a helpful assistant that summarizes content collections." },
-        { role: "user", content: prompt },
-      ],
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const summary = completion.choices[0].message.content;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const summary = response.text();
 
     return NextResponse.json({ summary });
   } catch (error: any) {
-    console.error('OpenAI Summary Error:', error);
+    console.error('Google AI Summary Error:', error);
     return NextResponse.json(
       { error: error.message || 'An error occurred during summarization' },
       { status: 500 }

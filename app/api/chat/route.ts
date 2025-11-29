@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 export async function POST(req: Request) {
   try {
@@ -19,7 +17,6 @@ export async function POST(req: Request) {
       if (box.aiSummary) {
         boxContent += `\nAI Context Summary: ${box.aiSummary}`;
       }
-      // Still include links just in case, but the summary is primary
       if (box.links && box.links.length > 0) {
         boxContent += `\nResources: ${box.links.map((l: any) => `- ${l.title || l.url}`).join(', ')}`;
       }
@@ -35,19 +32,31 @@ When answering, synthesize information from these summaries.
 If the user asks about specific details not in the summary, look at the resource titles.
 Keep your answers concise and helpful.`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages,
-      ],
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: systemPrompt
     });
 
-    const reply = completion.choices[0].message.content;
+    // Convert OpenAI message format (user/assistant) to Gemini format (user/model)
+    // Gemini requires history to not include the last message if using sendMessage
+    const history = messages.slice(0, -1).map((msg: any) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const lastMessage = messages[messages.length - 1];
+    
+    const chat = model.startChat({
+      history: history,
+    });
+
+    const result = await chat.sendMessage(lastMessage.content);
+    const response = await result.response;
+    const reply = response.text();
 
     return NextResponse.json({ reply });
   } catch (error: any) {
-    console.error('OpenAI API Error:', error);
+    console.error('Google AI API Error:', error);
     return NextResponse.json(
       { error: error.message || 'An error occurred during the request' },
       { status: 500 }
