@@ -27,40 +27,35 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
   const hasMounted = useRef(false);
 
   useEffect(() => {
-    // Strict Check:
-    // 1. If store hasn't rehydrated, DO NOTHING.
-    // 2. If on first mount and summary exists, DO NOTHING.
-    // 3. NEW: If the summary is FRESHER than the last link update, DO NOTHING.
-    
     if (!_hasHydrated) return;
+    if (box.links.length === 0) return;
 
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-      if (box.aiSummary) return;
-    }
-
-    // Find the latest update time of any link
+    // 1. Find the latest update time of any link (e.g. link added or refreshed)
     const lastLinkUpdate = box.links.reduce((max, link) => {
         const linkTime = new Date(link.updatedAt).getTime();
         return linkTime > max ? linkTime : max;
     }, 0);
 
     const lastSummaryTime = box.lastSummarized ? new Date(box.lastSummarized).getTime() : 0;
+    const now = Date.now();
+    const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
 
-    // If summary is newer than the latest link change, we don't need to re-run.
-    if (lastSummaryTime > lastLinkUpdate) {
-        return;
+    // Condition 1 & 2: Content is newer than summary (Link added or refreshed)
+    const hasNewContent = lastLinkUpdate > lastSummaryTime;
+    
+    // Condition 3: Summary is stale (> 3 days old)
+    const isSummaryStale = (now - lastSummaryTime) > threeDaysMs;
+    
+    // Condition 4: No summary exists at all
+    const hasNoSummary = !box.aiSummary;
+
+    if (hasNewContent || isSummaryStale || hasNoSummary) {
+        const timer = setTimeout(() => {
+            handleSummarize(true); 
+        }, 2000);
+        return () => clearTimeout(timer);
     }
-
-    // Only summarize if we actually have links
-    if (box.links.length === 0) return;
-
-    const timer = setTimeout(() => {
-        handleSummarize(true); 
-    }, 2000); 
-
-    return () => clearTimeout(timer);
-  }, [box.links.length, linksSignature, _hasHydrated, box.lastSummarized]); 
+  }, [linksSignature, _hasHydrated, box.lastSummarized]); 
   // Dependency on length and URLs. Note: deeply nested dependency might be heavy but fine for small lists.
 
   const handleAddLinkSmart = async (e: React.FormEvent) => {
