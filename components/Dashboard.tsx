@@ -10,11 +10,14 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Layout, Menu, Plus } from 'lucide-react';
 import { ModeToggle } from '@/components/mode-toggle';
+import { MyContentDialog } from '@/components/MyContentDialog';
 
 export const Dashboard: React.FC = () => {
   const { boxes, fetchBoxes } = useStore();
   const [mounted, setMounted] = useState(false);
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
+
+  const visibleBoxes = boxes.filter(b => b.name !== "My Content");
 
   useEffect(() => {
     setMounted(true);
@@ -43,6 +46,7 @@ export const Dashboard: React.FC = () => {
             <h1 className="font-bold text-lg tracking-tight">ContentBrain</h1>
           </div>
           <div className="flex items-center gap-2">
+            <MyContentDialog />
             <ModeToggle />
             <div className="lg:hidden">
               <Button variant="ghost" size="icon" onClick={() => setIsMobileChatOpen(true)}>
@@ -70,7 +74,7 @@ export const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                <div className="bg-muted/20 border border-border rounded-lg p-4">
                  <p className="text-sm text-muted-foreground">Total Contexts</p>
-                 <p className="text-2xl font-bold">{boxes.length}</p>
+                 <p className="text-2xl font-bold">{visibleBoxes.length}</p>
                </div>
                <div className="bg-muted/20 border border-border rounded-lg p-4">
                  <p className="text-sm text-muted-foreground">Total Links</p>
@@ -88,7 +92,7 @@ export const Dashboard: React.FC = () => {
                  <h3 className="text-lg font-semibold">Categories</h3>
                </div>
                
-               {boxes.length === 0 ? (
+               {visibleBoxes.length === 0 ? (
                  <div className="border-2 border-dashed border-muted rounded-xl p-12 text-center flex flex-col items-center gap-4">
                    <div className="bg-muted/50 p-4 rounded-full">
                      <Plus className="w-8 h-8 text-muted-foreground" />
@@ -100,7 +104,7 @@ export const Dashboard: React.FC = () => {
                  </div>
                ) : (
                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                   {boxes.map((box) => (
+                   {visibleBoxes.map((box) => (
                      <BoxCard key={box.id} box={box} />
                    ))}
                  </div>
