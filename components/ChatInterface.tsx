@@ -85,7 +85,7 @@ export const ChatInterface: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background border-l border-border shadow-xl">
+    <div className="flex flex-col h-full bg-background border-l border-border shadow-xl relative">
       {/* Header */}
       <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
@@ -115,7 +115,7 @@ export const ChatInterface: React.FC = () => {
       </div>
 
       {/* Chat Area */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-4 pb-24" ref={scrollRef}>
         <div className="flex flex-col gap-6 max-w-2xl mx-auto">
           {chatHistory.length === 0 && (
             <div className="flex flex-col items-center justify-center text-center mt-20 gap-4">
@@ -179,7 +179,7 @@ export const ChatInterface: React.FC = () => {
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-border bg-background z-20">
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-background z-30 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
         <form onSubmit={handleSend} className="relative max-w-2xl mx-auto flex items-center gap-2">
           <div className="relative flex-1">
             <Input
