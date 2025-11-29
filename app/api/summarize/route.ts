@@ -42,4 +42,3 @@ This summary will be used to provide context to another AI chatbot.`;
     );
   }
 }
-

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, LinkType } from '@/types';
 import { useStore } from '@/store/useStore';
 import { Trash2, Plus, Check, ExternalLink, Youtube, Instagram, Video, Link as LinkIcon, RefreshCw, Sparkles, FileText } from 'lucide-react';
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 
 interface BoxCardProps {
   box: Box;
@@ -20,46 +19,23 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newLinkType, setNewLinkType] = useState<LinkType>('youtube');
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [isFetchingMeta, setIsFetchingMeta] = useState(false);
 
-  const handleAddLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newLinkUrl) return;
-    
-    // Optimistic add
-    const tempId = crypto.randomUUID(); // Won't be used in store action but good for thinking
-    addLinkToBox(box.id, {
-      url: newLinkUrl,
-      type: newLinkType,
-      title: newLinkUrl, // Placeholder
-    });
-
-    const urlToFetch = newLinkUrl;
-    setNewLinkUrl('');
-    setIsAddingLink(false);
-
-    // Fetch metadata in background
-    try {
-      const res = await fetch('/api/metadata', {
-        method: 'POST',
-        body: JSON.stringify({ url: urlToFetch }),
-      });
-      if (res.ok) {
-        const meta = await res.json();
-        if (meta.title) {
-          // Find the link we just added (this is tricky with the current store, 
-          // so we might need to just update the last added link or change store to return ID.
-          // For now, let's just update by matching URL - crude but works for MVP)
-          const link = box.links.find(l => l.url === urlToFetch); // This won't work immediately because box prop is stale? 
-          // Actually, we need to wait for store update or reload. 
-          // Better approach: Just fetch FIRST, then add.
-        }
+  // Effect to trigger auto-summarization when links change
+  // We use a ref to track previous link count/content to avoid loops if we were to add summary to dependency
+  // But simpler: Just trigger it after add/delete actions explicitly or use a debounce effect.
+  // Since we want it "automatic", let's create a debounced effect that watches box.links
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (box.links.length > 0) {
+        handleSummarize(true); // Pass true to indicate "silent" or "auto" mode if needed
       }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+    }, 2000); // Wait 2s after last link change to summarize
 
-  // Better Add Link Handler: Fetch first (with loading state ideally), then add
+    return () => clearTimeout(timer);
+  }, [box.links.length, box.links.map(l => l.url).join(',')]); 
+  // Dependency on length and URLs. Note: deeply nested dependency might be heavy but fine for small lists.
+
   const handleAddLinkSmart = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLinkUrl) return;
@@ -67,6 +43,7 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
     const url = newLinkUrl;
     setNewLinkUrl('');
     setIsAddingLink(false);
+    setIsFetchingMeta(true);
 
     // Add placeholder immediately
     const placeholderTitle = url;
@@ -84,10 +61,6 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
       });
       const meta = await res.json();
       
-      // We need to find the link ID to update it. 
-      // Since we don't get the ID back from addLinkToBox in the current store implementation,
-      // we'll just iterate to find the matching URL. (In a real app, return ID from action).
-      // We can use a slightly hacky way: access the store state directly to find it.
       const currentBox = useStore.getState().boxes.find(b => b.id === box.id);
       const link = currentBox?.links.find(l => l.url === url && l.title === placeholderTitle);
       
@@ -99,11 +72,16 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
       }
     } catch (e) {
       console.error("Failed to fetch metadata", e);
+    } finally {
+      setIsFetchingMeta(false);
+      // Auto-summarize will be triggered by the useEffect observing links
     }
   };
 
-  const handleSummarize = async () => {
+  const handleSummarize = async (isAuto = false) => {
     if (box.links.length === 0) return;
+    // If auto, don't show full loading state if already summarized recently? 
+    // For now, let's show the spinner on the summary area to indicate "updating".
     setIsSummarizing(true);
     try {
       const res = await fetch('/api/summarize', {
@@ -159,37 +137,26 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
       </CardHeader>
 
       {/* AI Summary Section */}
-      {box.aiSummary ? (
-        <div className="px-4 py-2 bg-primary/5 border-y border-primary/10">
-          <div className="flex items-center gap-2 mb-1">
+      <div className="px-4 py-2 bg-primary/5 border-y border-primary/10 min-h-[60px] flex flex-col justify-center relative">
+         <div className="flex items-center gap-2 mb-1">
             <Sparkles className="w-3 h-3 text-primary" />
             <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">AI Context</span>
+            {isSummarizing && <RefreshCw className="w-3 h-3 animate-spin text-primary ml-2" />}
             <span className="text-[10px] text-muted-foreground ml-auto">
               {box.lastSummarized ? new Date(box.lastSummarized).toLocaleDateString() : ''}
             </span>
-          </div>
-          <p className="text-xs text-muted-foreground line-clamp-3 italic">
-            "{box.aiSummary}"
-          </p>
-        </div>
-      ) : (
-        <div className="px-4 py-2">
-           <Button 
-             variant="secondary" 
-             size="sm" 
-             className="w-full h-7 text-xs gap-2 bg-muted/50 hover:bg-muted"
-             onClick={handleSummarize}
-             disabled={isSummarizing || box.links.length === 0}
-           >
-             {isSummarizing ? (
-               <RefreshCw className="w-3 h-3 animate-spin" />
-             ) : (
-               <Sparkles className="w-3 h-3" />
-             )}
-             {isSummarizing ? 'Analyzing...' : 'Generate Context Summary'}
-           </Button>
-        </div>
-      )}
+         </div>
+         
+         {box.aiSummary ? (
+            <p className="text-xs text-muted-foreground line-clamp-3 italic">
+               "{box.aiSummary}"
+            </p>
+         ) : (
+            <p className="text-xs text-muted-foreground italic opacity-50">
+               {box.links.length > 0 ? (isSummarizing ? "Generating summary..." : "Waiting for analysis...") : "Add content to generate summary"}
+            </p>
+         )}
+      </div>
       
       <CardContent className="p-4 pt-2 flex-1 flex flex-col gap-2 min-h-[100px] max-h-[300px] overflow-y-auto scrollbar-thin">
         {box.links.map((link) => (
