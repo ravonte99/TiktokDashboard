@@ -231,9 +231,9 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
           <div key={link.id} className="group flex items-center justify-between text-sm bg-muted/30 p-2 rounded-md hover:bg-muted transition-colors border border-transparent hover:border-border">
             <div className="flex items-center gap-2 truncate flex-1">
               {getIcon(link.type)}
-              <div className="flex flex-col truncate">
-                <a href={link.url} target="_blank" rel="noopener noreferrer" className="truncate font-medium hover:underline text-foreground flex items-center gap-1">
-                  {link.title || link.url}
+              <div className="flex flex-col truncate flex-1 min-w-0">
+                <a href={link.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline text-foreground flex items-center gap-1 min-w-0">
+                  <span className="truncate">{link.title || link.url}</span>
                   {(link.description?.includes('RECENT VIDEOS') || link.description?.includes('stats.playCount') || link.description?.includes('VIDEO LIST')) && (
                     <span className="flex h-2 w-2 rounded-full bg-green-500 shrink-0 animate-pulse" title="Detailed content available" />
                   )}
