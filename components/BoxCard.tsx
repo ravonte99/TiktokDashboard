@@ -13,7 +13,7 @@ interface BoxCardProps {
 }
 
 export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
-  const { deleteBox, toggleBoxSelection, selectedBoxIds, removeLinkFromBox, addLinkToBox, updateLinkInBox, setBoxSummary } = useStore();
+  const { deleteBox, toggleBoxSelection, selectedBoxIds, removeLinkFromBox, addLinkToBox, updateLinkInBox, setBoxSummary, _hasHydrated } = useStore();
   const isSelected = selectedBoxIds.includes(box.id);
   const [isAddingLink, setIsAddingLink] = useState(false);
   const [newLinkUrl, setNewLinkUrl] = useState('');
@@ -27,11 +27,14 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
   const hasMounted = useRef(false);
 
   useEffect(() => {
-    // strict check: if we have a summary and it was generated AFTER the last link change, do nothing.
-    // But since we don't track "lastLinkChangeTime" perfectly, we use the mount check.
+    // Strict Check:
+    // 1. If store hasn't rehydrated from localStorage yet, DO NOTHING. (Prevents early firing on empty state)
+    // 2. If on first mount and summary exists, DO NOTHING.
+    
+    if (!_hasHydrated) return;
+
     if (!hasMounted.current) {
       hasMounted.current = true;
-      // On mount, if we already have a summary, DO NOT summarize.
       if (box.aiSummary) return;
     }
 
@@ -43,7 +46,7 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
     }, 2000); 
 
     return () => clearTimeout(timer);
-  }, [box.links.length, linksSignature]); 
+  }, [box.links.length, linksSignature, _hasHydrated]); 
   // Dependency on length and URLs. Note: deeply nested dependency might be heavy but fine for small lists.
 
   const handleAddLinkSmart = async (e: React.FormEvent) => {

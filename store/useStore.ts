@@ -25,6 +25,10 @@ interface AppState {
   // Chat Actions
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   clearChat: () => void;
+  
+  // Persistence status
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -33,6 +37,9 @@ export const useStore = create<AppState>()(
       boxes: [],
       selectedBoxIds: [],
       chatHistory: [],
+      _hasHydrated: false,
+
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       addBox: (boxData) => set((state) => ({
         boxes: [
@@ -128,6 +135,9 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'tiktok-dashboard-storage',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
