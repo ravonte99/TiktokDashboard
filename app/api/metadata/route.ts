@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
-import TikTokScraper from 'tiktok-scraper-ts';
+// import TikTokScraper from 'tiktok-scraper-ts'; // Removed due to import issues
 
 export async function POST(req: Request) {
   try {
@@ -15,36 +15,38 @@ export async function POST(req: Request) {
 
     if (isTiktokProfile) {
         try {
-            // Extract username from URL (remove query params if any)
+            // Extract username from URL
             const username = url.split('@')[1].split('?')[0].split('/')[0];
             
-            // Use dedicated library to fetch user details
-            const user = await TikTokScraper.getUserProfile(username);
+            // Direct scrape attempt with headers (lightweight fallback)
+            // TikTok is hard to scrape without a library/browser, but the library is failing.
+            // Let's try a simple fetch first, if it fails, we just return the URL title.
             
-            let description = `TIKTOK PROFILE: ${user.userInfo.user.nickname} (@${user.userInfo.user.uniqueId})\nBIO: ${user.userInfo.user.signature}`;
-            description += `\nSTATS: ${user.userInfo.stats.followerCount} Followers, ${user.userInfo.stats.heartCount} Likes`;
-
-            // Try to fetch videos if available in the library
-            try {
-                const posts = await TikTokScraper.getUserPosts(username, { count: 10 });
-                if (posts && posts.length > 0) {
-                    const videoTitles = posts.map(p => p.description).filter(d => d);
-                    if (videoTitles.length > 0) {
-                        description += `\n\nRECENT VIDEOS:\n- ${videoTitles.join('\n- ')}`;
-                    }
+            const response = await fetch(url, {
+                headers: {
+                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 }
-            } catch (videoError) {
-                console.warn('Failed to fetch TikTok videos:', videoError);
-            }
-            
-            return NextResponse.json({ 
-                title: `${user.userInfo.user.nickname} on TikTok`, 
-                description 
             });
+            
+            if (response.ok) {
+                const html = await response.text();
+                const $ = cheerio.load(html);
+                
+                // TikTok meta tags
+                const title = $('meta[property="og:title"]').attr('content') || `${username} on TikTok`;
+                const description = $('meta[property="og:description"]').attr('content') || '';
+                
+                // Try to find stats in description if available (e.g. "X Followers, Y Likes")
+                return NextResponse.json({ 
+                    title, 
+                    description: `TIKTOK PROFILE: ${description}` 
+                });
+            }
+
+            return genericFetch(url);
 
         } catch (e) {
             console.error('TikTok scrape failed:', e);
-            // Fallback to basic generic fetch if library fails (TikTok blocks often)
             return genericFetch(url);
         }
     }
@@ -87,8 +89,6 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Metadata fetch error:', error);
     // Return empty on error to allow UI to continue
-    // Assuming 'url' is available in scope, but it was destructured inside try. 
-    // For safety, just return empty strings.
     return NextResponse.json({ title: '', description: '' });
   }
 }
