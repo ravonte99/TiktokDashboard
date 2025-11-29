@@ -46,6 +46,27 @@ export const useStore = create<AppState>((set, get) => ({
       const data = await res.json();
       if (Array.isArray(data)) {
         set({ boxes: data });
+        
+        // Ensure "My Content" box exists
+        const myContentBox = data.find((b: Box) => b.name === "My Content");
+        if (!myContentBox) {
+            try {
+                const createRes = await fetch('/api/boxes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: "My Content", 
+                        description: "Your personal content profile" 
+                    })
+                });
+                if (createRes.ok) {
+                    const newBox = await createRes.json();
+                    set(state => ({ boxes: [newBox, ...state.boxes] }));
+                }
+            } catch (e) {
+                console.error("Error creating default My Content box", e);
+            }
+        }
       }
     } catch (error) {
       console.error('Failed to fetch boxes:', error);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, LinkType, LinkItem } from '@/types';
 import { useStore } from '@/store/useStore';
-import { Trash2, Plus, Check, ExternalLink, Youtube, Instagram, Video, Link as LinkIcon, RefreshCw, Sparkles, FileText } from 'lucide-react';
+import { Trash2, Plus, Check, ExternalLink, Youtube, Instagram, Video, Link as LinkIcon, RefreshCw, Sparkles, FileText, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,13 +43,12 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
     // Condition 1 & 2: Content is newer than summary (Link added or refreshed)
     const hasNewContent = lastLinkUpdate > lastSummaryTime;
     
-    // Condition 3: Summary is stale (> 3 days old)
-    const isSummaryStale = (now - lastSummaryTime) > threeDaysMs;
-    
-    // Condition 4: No summary exists at all
+    // Condition 3: No summary exists at all
     const hasNoSummary = !box.aiSummary;
 
-    if (hasNewContent || isSummaryStale || hasNoSummary) {
+    // We removed the time-based staleness check. Summaries are now "infinite" validity
+    // unless content changes or it's manually triggered.
+    if (hasNewContent || hasNoSummary) {
         const timer = setTimeout(() => {
             handleSummarize(true); 
         }, 2000);
@@ -175,6 +174,8 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
     }
   };
 
+  const isMyContentBox = box.name === "My Content";
+
   return (
     <Card className={`flex flex-col h-full transition-all duration-200 ${isSelected ? 'ring-2 ring-primary border-primary/50 shadow-lg' : 'hover:border-primary/30'}`}>
       <CardHeader className="p-4 pb-2">
@@ -189,13 +190,18 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
               {isSelected && <Check className="h-3 w-3" />}
             </Button>
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-lg font-semibold leading-none truncate">{box.name}</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg font-semibold leading-none truncate">{box.name}</CardTitle>
+                {isMyContentBox && <User className="w-4 h-4 text-primary fill-primary/20" />}
+              </div>
               {box.description && <CardDescription className="text-xs mt-1 line-clamp-2 break-words">{box.description}</CardDescription>}
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={() => deleteBox(box.id)}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          {!isMyContentBox && (
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={() => deleteBox(box.id)}>
+                <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </CardHeader>
 
@@ -262,48 +268,52 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
         ))}
         {box.links.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-4 opacity-50">
-            <FileText className="w-8 h-8 mb-1" />
-            <p className="text-xs">No content yet</p>
+            {isMyContentBox ? <User className="w-8 h-8 mb-1" /> : <FileText className="w-8 h-8 mb-1" />}
+            <p className="text-xs">{isMyContentBox ? "Add your profile link here" : "No content yet"}</p>
           </div>
         )}
       </CardContent>
 
       <CardFooter className="p-4 pt-0 mt-auto">
-        {isAddingLink ? (
-          <form onSubmit={handleAddLinkSmart} className="flex flex-col gap-2 w-full p-2 border rounded-md bg-background shadow-sm">
-            <div className="flex gap-2">
-              <Select value={newLinkType} onValueChange={(v) => setNewLinkType(v as LinkType)}>
-                <SelectTrigger className="w-[100px] h-8 text-xs">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="youtube">YouTube</SelectItem>
-                  <SelectItem value="tiktok">TikTok</SelectItem>
-                  <SelectItem value="instagram">Instagram</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="https://..."
-                value={newLinkUrl}
-                onChange={(e) => setNewLinkUrl(e.target.value)}
-                className="h-8 text-xs flex-1"
-                autoFocus
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingLink(false)} className="h-7 text-xs">Cancel</Button>
-              <Button type="submit" size="sm" className="h-7 text-xs">Add</Button>
-            </div>
-          </form>
+        {isMyContentBox && box.links.length >= 1 ? (
+           <p className="text-[10px] text-muted-foreground w-full text-center italic">Profile link set</p>
         ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsAddingLink(true)}
-            className="w-full border-dashed text-muted-foreground hover:text-primary hover:border-primary"
-          >
-            <Plus className="w-4 h-4 mr-2" /> Add Link
-          </Button>
+            isAddingLink ? (
+            <form onSubmit={handleAddLinkSmart} className="flex flex-col gap-2 w-full p-2 border rounded-md bg-background shadow-sm">
+                <div className="flex gap-2">
+                <Select value={newLinkType} onValueChange={(v) => setNewLinkType(v as LinkType)}>
+                    <SelectTrigger className="w-[100px] h-8 text-xs">
+                    <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="youtube">YouTube</SelectItem>
+                    <SelectItem value="tiktok">TikTok</SelectItem>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Input
+                    placeholder="https://..."
+                    value={newLinkUrl}
+                    onChange={(e) => setNewLinkUrl(e.target.value)}
+                    className="h-8 text-xs flex-1"
+                    autoFocus
+                />
+                </div>
+                <div className="flex gap-2 justify-end">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingLink(false)} className="h-7 text-xs">Cancel</Button>
+                <Button type="submit" size="sm" className="h-7 text-xs">Add</Button>
+                </div>
+            </form>
+            ) : (
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddingLink(true)}
+                className="w-full border-dashed text-muted-foreground hover:text-primary hover:border-primary"
+            >
+                <Plus className="w-4 h-4 mr-2" /> Add Link
+            </Button>
+            )
         )}
       </CardFooter>
     </Card>
