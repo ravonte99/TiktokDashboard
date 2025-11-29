@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 // Helper: The "Box Agent" - An expert on one specific box
 async function queryBoxAgent(box: any, question: string) {
   // Use a fast, cost-effective model for the sub-agents
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); 
   
   let contextContent = `You are an expert analyst for a specific collection of content named "${box.name}".\n`;
   if (box.description) contextContent += `Collection Description: ${box.description}\n`;
