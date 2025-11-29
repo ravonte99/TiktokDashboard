@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import { Send, Bot, User, Sparkles, ArrowRight, Loader2, Box, Trash2 } from 'lucide-react';
+import { Send, Bot, User, Sparkles, ArrowRight, Loader2, Box, Trash2, Plus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea"; // Assuming you have or can make a Textarea component, or use standard
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -101,17 +101,18 @@ export const ChatInterface: React.FC = () => {
         </div>
         
         <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          variant="outline" 
+          size="sm" 
+          className="h-8 gap-1.5 text-xs"
           onClick={() => {
             if (window.confirm('Start a new chat? This will clear the current history.')) {
               clearChat();
             }
           }}
-          title="Clear Chat"
+          title="Start New Chat"
         >
-          <Trash2 className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
+          New Chat
         </Button>
       </div>
       
