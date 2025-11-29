@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import { Send, Bot, User, Sparkles, ArrowRight, Loader2, Box } from 'lucide-react';
+import { Send, Bot, User, Sparkles, ArrowRight, Loader2, Box, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,7 +11,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 export const ChatInterface: React.FC = () => {
-  const { chatHistory, addMessage, selectedBoxIds, boxes } = useStore();
+  const { chatHistory, addMessage, selectedBoxIds, boxes, clearChat } = useStore();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -89,7 +89,7 @@ export const ChatInterface: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-background border-l border-border shadow-xl relative">
       {/* Header */}
-      <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10 flex justify-between items-start">
         <div className="flex items-center gap-3">
           <div className="bg-primary/10 p-2 rounded-full">
             <Bot className="w-5 h-5 text-primary" />
@@ -100,8 +100,24 @@ export const ChatInterface: React.FC = () => {
           </div>
         </div>
         
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          onClick={() => {
+            if (window.confirm('Start a new chat? This will clear the current history.')) {
+              clearChat();
+            }
+          }}
+          title="Clear Chat"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+      
+      <div className="px-4 py-2 bg-card/30 border-b border-border">
         {/* Context Indicator */}
-        <div className="mt-3 flex items-center gap-2 text-xs overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-2 text-xs overflow-x-auto pb-1 scrollbar-none">
           <span className="text-muted-foreground shrink-0">Context:</span>
           {selectedBoxes.length > 0 ? (
             selectedBoxes.map(box => (
