@@ -115,6 +115,7 @@ Your goal is to answer the user's questions by orchestrating these contexts.
           if (targetBox) {
             console.log(`Manager asking Box "${targetBox.name}": ${question}`);
             toolResult = await queryBoxAgent(targetBox, question);
+            console.log(`Box "${targetBox.name}" replied:`, toolResult);
           } else {
             toolResult = `Error: Box with ID ${box_id} not found.`;
           }
