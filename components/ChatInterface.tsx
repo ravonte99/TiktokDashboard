@@ -158,12 +158,11 @@ export const ChatInterface: React.FC = () => {
                     {msg.role === 'user' ? (
                         <div className="whitespace-pre-wrap">{msg.content}</div>
                     ) : (
-                        <ReactMarkdown 
-                            remarkPlugins={[remarkGfm]}
-                            className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0"
-                        >
-                            {msg.content}
-                        </ReactMarkdown>
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {msg.content}
+                            </ReactMarkdown>
+                        </div>
                     )}
                   </div>
                   <span className="text-[10px] text-muted-foreground px-1">
