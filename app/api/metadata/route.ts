@@ -15,18 +15,33 @@ export async function POST(req: Request) {
     if (isTiktokProfile) {
       // RapidAPI Integration for TikTok
       const rapidApiKey = process.env.RAPIDAPI_KEY;
+      const rapidApiHost = process.env.RAPIDAPI_HOST || 'tiktok-scraper7.p.rapidapi.com';
       
       if (rapidApiKey) {
          try {
             const username = url.split('@')[1].split('?')[0].split('/')[0];
             
-            // Using 'tiktok-scraper7' or similar from RapidAPI
-            // Endpoint: https://tiktok-scraper7.p.rapidapi.com/user/info
-            const response = await fetch(`https://tiktok-scraper7.p.rapidapi.com/user/info?unique_id=${username}`, {
+            // Generic fetch using the configured host
+            // Note: Most TikTok scrapers on RapidAPI use similar endpoints like /user/info or /user/details
+            // We might need to adjust based on the specific API chosen.
+            // Current implementation assumes 'tiktok-scraper7' style:
+            // - Info: /user/info?unique_id=username
+            // - Posts: /user/posts?unique_id=username
+            //
+            // UPDATE for tiktok-api23 (and some others): They often use /api/user/info
+            
+            console.log(`Fetching TikTok profile for ${username} using host: ${rapidApiHost}`);
+
+            let basePath = '';
+            if (rapidApiHost === 'tiktok-api23.p.rapidapi.com') {
+               basePath = '/api';
+            }
+
+            const response = await fetch(`https://${rapidApiHost}${basePath}/user/info?unique_id=${username}`, {
                method: 'GET',
                headers: {
                   'x-rapidapi-key': rapidApiKey,
-                  'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com'
+                  'x-rapidapi-host': rapidApiHost
                }
             });
 
@@ -45,11 +60,11 @@ export async function POST(req: Request) {
                    try {
                        // Attempt to fetch posts from the same RapidAPI provider
                        console.log(`Fetching recent videos for ${username} via RapidAPI...`);
-                       const postsResponse = await fetch(`https://tiktok-scraper7.p.rapidapi.com/user/posts?unique_id=${username}&count=10`, {
+                       const postsResponse = await fetch(`https://${rapidApiHost}${basePath}/user/posts?unique_id=${username}&count=10`, {
                            method: 'GET',
                            headers: {
                                'x-rapidapi-key': rapidApiKey,
-                               'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com'
+                               'x-rapidapi-host': rapidApiHost
                            }
                        });
         
@@ -79,7 +94,8 @@ export async function POST(req: Request) {
                    });
                }
             } else {
-                console.warn('RapidAPI fetch failed:', response.status);
+                const errorText = await response.text();
+                console.warn(`RapidAPI fetch failed: ${response.status} ${response.statusText}`, errorText);
             }
          } catch (e) {
             console.error('RapidAPI error:', e);
