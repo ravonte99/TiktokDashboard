@@ -1,10 +1,23 @@
 import React, { useState } from 'react';
 import { useStore } from '@/store/useStore';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export const CreateBoxForm: React.FC = () => {
   const { addBox } = useStore();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
@@ -19,49 +32,50 @@ export const CreateBoxForm: React.FC = () => {
 
     setName('');
     setDescription('');
-    setIsExpanded(false);
+    setIsOpen(false);
   };
 
-  if (!isExpanded) {
-    return (
-      <button
-        onClick={() => setIsExpanded(true)}
-        className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors"
-      >
-        <Plus className="w-5 h-5" /> Create New Box
-      </button>
-    );
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="border rounded-lg p-4 bg-white dark:bg-gray-900 shadow-sm flex flex-col gap-3">
-      <div className="flex justify-between items-center">
-        <h3 className="font-medium">New Box</h3>
-        <button type="button" onClick={() => setIsExpanded(false)} className="text-gray-400 hover:text-gray-600">
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-      <input
-        type="text"
-        placeholder="Box Name (e.g. 'Inspiration')"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="border rounded p-2 dark:bg-gray-800"
-        autoFocus
-      />
-      <textarea
-        placeholder="Description (optional)"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        className="border rounded p-2 text-sm dark:bg-gray-800"
-        rows={2}
-      />
-      <div className="flex justify-end">
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-          Create
-        </button>
-      </div>
-    </form>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button className="gap-2 shadow-md hover:shadow-lg transition-all">
+          <Plus className="w-4 h-4" /> Create New Box
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Create New Box</DialogTitle>
+            <DialogDescription>
+              Create a new category to organize your links and content.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                placeholder="e.g. 'Inspiration', 'Competitor Analysis'"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Optional description for this category..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={!name.trim()}>Create Box</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
-
