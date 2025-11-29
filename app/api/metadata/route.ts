@@ -147,7 +147,9 @@ export async function POST(req: Request) {
                                const videoList = videos.map((v: any) => {
                                    // API23 mapping might be different
                                    const caption = v.desc || v.title || v.description || 'No caption';
-                                   const plays = v.stats?.playCount || v.playCount || v.statistics?.play_count || 0;
+                                   // API23 uses 'statistics', others use 'stats'
+                                   const statsObj = v.stats || v.statistics || {};
+                                   const plays = statsObj.playCount || statsObj.play_count || v.playCount || 0;
                                    return `- "${caption.replace(/\n/g, ' ')}" (${plays} views)`;
                                }).join('\n');
                                
