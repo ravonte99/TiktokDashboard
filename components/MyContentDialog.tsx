@@ -192,9 +192,9 @@ export const MyContentDialog: React.FC = () => {
             {hasLink && currentLink ? (
                 <div className="flex flex-col gap-4">
                     <div className="bg-muted/40 p-4 rounded-lg border border-border">
-                        <div className="flex items-start justify-between gap-2">
-                            <div className="flex gap-3 overflow-hidden">
-                                <div className="bg-background p-2 rounded-md h-fit border">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex gap-3 overflow-hidden items-center">
+                                <div className="bg-background p-2 rounded-md h-fit border shrink-0">
                                     {currentLink.type === 'tiktok' ? <span className="text-lg">🎵</span> : <LinkIcon className="w-5 h-5" />}
                                 </div>
                                 <div className="flex flex-col min-w-0">
@@ -202,7 +202,7 @@ export const MyContentDialog: React.FC = () => {
                                     <a href={currentLink.url} target="_blank" rel="noreferrer" className="text-xs text-muted-foreground hover:underline truncate">{currentLink.url}</a>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 shrink-0">
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleRefreshLink} title="Refresh Metadata">
                                     <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
                                 </Button>
