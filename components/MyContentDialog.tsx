@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,20 +8,70 @@ import { Box, LinkType } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const MyContentDialog: React.FC = () => {
-  const { boxes, addLinkToBox, updateLinkInBox, removeLinkFromBox } = useStore();
+  const { boxes, addLinkToBox, updateLinkInBox, removeLinkFromBox, setBoxSummary } = useStore();
   const [isOpen, setIsOpen] = useState(false);
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newLinkType, setNewLinkType] = useState<LinkType>('tiktok');
   const [isFetching, setIsFetching] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
 
   const myContentBox = boxes.find(b => b.name === "My Content");
   
+  // Auto-summarize logic
+  useEffect(() => {
+    if (!myContentBox || myContentBox.links.length === 0) return;
+
+    // Check if we need to summarize
+    // 1. No summary exists
+    // 2. Content is newer than summary
+    const lastLinkUpdate = myContentBox.links.reduce((max, link) => {
+        const linkTime = new Date(link.updatedAt).getTime();
+        return linkTime > max ? linkTime : max;
+    }, 0);
+    
+    const lastSummaryTime = myContentBox.lastSummarized ? new Date(myContentBox.lastSummarized).getTime() : 0;
+    
+    const hasNewContent = lastLinkUpdate > lastSummaryTime;
+    const hasNoSummary = !myContentBox.aiSummary;
+
+    if ((hasNewContent || hasNoSummary) && !isSummarizing) {
+        const timer = setTimeout(() => {
+            handleSummarize(myContentBox); 
+        }, 2000);
+        return () => clearTimeout(timer);
+    }
+  }, [myContentBox?.links, myContentBox?.lastSummarized, myContentBox?.aiSummary]);
+
+  const handleSummarize = async (box: Box) => {
+    setIsSummarizing(true);
+    try {
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        body: JSON.stringify({
+          links: box.links,
+          boxName: box.name,
+          boxDescription: box.description
+        }),
+      });
+      const data = await res.json();
+      if (data.summary) {
+        await setBoxSummary(box.id, data.summary);
+      }
+    } catch (e) {
+      console.error("Failed to summarize My Content", e);
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
   // Safety check: useStore should ensure this exists, but fallback just in case
   if (!myContentBox) return null;
 
   const hasLink = myContentBox.links.length > 0;
   const currentLink = hasLink ? myContentBox.links[0] : null;
-  const isSummarized = !!myContentBox.aiSummary;
+  const isReady = !!myContentBox.aiSummary; // Renamed for clarity
+  
+  // ... rest of the component ...
 
   const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,10 +130,14 @@ export const MyContentDialog: React.FC = () => {
            {hasLink ? (
              <>
                User Account Connected
-               <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                 <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-               </span>
+               {isReady ? (
+                 <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-400 border-2 border-background" />
+               ) : (
+                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
+                 </span>
+               )}
              </>
            ) : (
              "Connect User Account"
@@ -123,20 +177,20 @@ export const MyContentDialog: React.FC = () => {
                         <div className="mt-4 pt-4 border-t border-border/50">
                             <div className="flex items-center gap-2 mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">AI Status</span>
-                                {isSummarized ? (
+                                {isReady ? (
                                     <span className="text-[10px] bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1">
                                         <Check className="w-3 h-3" /> Ready
                                     </span>
                                 ) : (
                                     <span className="text-[10px] bg-yellow-500/10 text-yellow-600 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                        <Loader2 className="w-3 h-3 animate-spin" /> Analyzing...
+                                        <Loader2 className="w-3 h-3 animate-spin" /> {isSummarizing ? "Analyzing..." : "Pending..."}
                                     </span>
                                 )}
                             </div>
                             {myContentBox.aiSummary ? (
                                 <p className="text-xs text-muted-foreground italic line-clamp-3">"{myContentBox.aiSummary}"</p>
                             ) : (
-                                <p className="text-xs text-muted-foreground italic">Analysis pending...</p>
+                                <p className="text-xs text-muted-foreground italic">Analysis will start automatically...</p>
                             )}
                         </div>
                     </div>
