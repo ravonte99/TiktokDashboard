@@ -1,7 +1,37 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, FunctionDeclarationSchemaType } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+
+// Helper: The "Box Agent" - An expert on one specific box
+async function queryBoxAgent(box: any, question: string) {
+  // Use a fast, cost-effective model for the sub-agents
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
+  
+  let contextContent = `You are an expert analyst for a specific collection of content named "${box.name}".\n`;
+  if (box.description) contextContent += `Collection Description: ${box.description}\n`;
+  if (box.aiSummary) contextContent += `Summary of Content: ${box.aiSummary}\n`;
+  
+  contextContent += `\nHere is the list of resources in this collection:\n`;
+  if (box.links && box.links.length > 0) {
+    box.links.forEach((l: any, i: number) => {
+        contextContent += `${i+1}. [${l.type}] ${l.title || 'Untitled'} (${l.url})\n`;
+        if (l.description) contextContent += `   Details: ${l.description.substring(0, 300)}...\n`; // Truncate long descriptions for context window efficiency
+    });
+  } else {
+    contextContent += "No specific links in this box.\n";
+  }
+
+  const prompt = `Context:\n${contextContent}\n\nUser Question: ${question}\n\nAnswer the question based ONLY on the context provided above. Be concise and specific. If the answer isn't in the context, say so.`;
+  
+  try {
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (e) {
+    console.error(`Box Agent error for ${box.name}:`, e);
+    return `Error analyzing box ${box.name}.`;
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -11,54 +41,106 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Messages are required' }, { status: 400 });
     }
 
-    // Construct context string from Summaries + Links
-    const contextString = context.map((box: any) => {
-      let boxContent = `Box: ${box.name}`;
-      if (box.aiSummary) {
-        boxContent += `\nAI Context Summary: ${box.aiSummary}`;
-      }
-      if (box.links && box.links.length > 0) {
-        boxContent += `\nResources: ${box.links.map((l: any) => `- ${l.title || l.url}`).join(', ')}`;
-      }
-      return boxContent;
-    }).join('\n\n');
+    // 1. Define the Tool for the Manager
+    const askBoxTool = {
+      name: "ask_box",
+      description: "Ask a specific question to a 'Context Box' (a category of videos/links) to get detailed information from it. Use this when you need to know about the specific contents, themes, or details within a category.",
+      parameters: {
+        type: FunctionDeclarationSchemaType.OBJECT,
+        properties: {
+          box_id: {
+            type: FunctionDeclarationSchemaType.STRING,
+            description: "The ID of the box to query. (Choose from the available boxes list)",
+          },
+          question: {
+            type: FunctionDeclarationSchemaType.STRING,
+            description: "The specific question to ask this box agent.",
+          },
+        },
+        required: ["box_id", "question"],
+      },
+    };
 
-    const systemPrompt = `You are a helpful AI assistant for a content dashboard. 
-The user has selected the following context boxes. Use the "AI Context Summary" for each box as the primary source of truth for what the content is about.
-
-${contextString}
-
-When answering, synthesize information from these summaries.
-If the user asks about specific details not in the summary, look at the resource titles.
-Keep your answers concise and helpful.`;
-
+    // 2. Prepare the Manager Model
     const model = genAI.getGenerativeModel({ 
       model: "gemini-3-pro-preview",
-      systemInstruction: systemPrompt
+      systemInstruction: {
+        parts: [{ text: `You are a Content Dashboard Manager AI.
+You have access to the following "Context Boxes":
+${context.map((b: any) => `- Name: "${b.name}" (ID: "${b.id}"): ${b.description || ''}`).join('\n')}
+
+Your goal is to answer the user's questions by orchestrating these contexts.
+- **ALWAYS** use the 'ask_box' tool to get information. Do not guess what is in the boxes.
+- You can call 'ask_box' multiple times (e.g., to compare Box A and Box B).
+- If the user asks "What is in my Inspiration box?", call ask_box(inspiration_id, "Summarize the contents").
+- Synthesize the results from the tool calls into a helpful final answer.
+` }]
+      },
+      tools: [{ functionDeclarations: [askBoxTool] }],
     });
 
-    // Convert OpenAI message format (user/assistant) to Gemini format (user/model)
-    // Gemini requires history to not include the last message if using sendMessage
+    // 3. Prepare History for Gemini
+    // Gemini format: { role: 'user' | 'model', parts: [{ text: ... }] }
+    // We need to filter out tool calls from previous turns if we aren't persisting them perfectly, 
+    // but for this simple chat interface, we'll just map text content.
+    // NOTE: Ideally, we should persist the tool calls in chat history for multi-turn context, 
+    // but simpler approach for now: Feed text history, start new turn.
     const history = messages.slice(0, -1).map((msg: any) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }],
     }));
 
     const lastMessage = messages[messages.length - 1];
-    
-    const chat = model.startChat({
-      history: history,
-    });
+    const chat = model.startChat({ history });
 
-    const result = await chat.sendMessage(lastMessage.content);
-    const response = await result.response;
+    // 4. Send User Message & Handle Tool Loop
+    let result = await chat.sendMessage(lastMessage.content);
+    let response = await result.response;
+    let functionCalls = response.functionCalls();
+
+    // Limit max turns to prevent infinite loops
+    let turns = 0;
+    const MAX_TURNS = 5;
+
+    while (functionCalls && functionCalls.length > 0 && turns < MAX_TURNS) {
+      turns++;
+      const functionResponses = [];
+
+      for (const call of functionCalls) {
+        if (call.name === 'ask_box') {
+          const { box_id, question } = call.args as any;
+          const targetBox = context.find((b: any) => b.id === box_id);
+          
+          let toolResult;
+          if (targetBox) {
+            console.log(`Manager asking Box "${targetBox.name}": ${question}`);
+            toolResult = await queryBoxAgent(targetBox, question);
+          } else {
+            toolResult = `Error: Box with ID ${box_id} not found.`;
+          }
+
+          functionResponses.push({
+            functionResponse: {
+              name: 'ask_box',
+              response: { result: toolResult }
+            }
+          });
+        }
+      }
+
+      // Feed tool results back to the model
+      result = await chat.sendMessage(functionResponses);
+      response = await result.response;
+      functionCalls = response.functionCalls();
+    }
+
     const reply = response.text();
-
     return NextResponse.json({ reply });
+
   } catch (error: any) {
-    console.error('Google AI API Error:', error);
+    console.error('Agentic Chat Error:', error);
     return NextResponse.json(
-      { error: error.message || 'An error occurred during the request' },
+      { error: error.message || 'An error occurred during the agent workflow' },
       { status: 500 }
     );
   }

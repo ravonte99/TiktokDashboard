@@ -56,6 +56,7 @@ export const ChatInterface: React.FC = () => {
         body: JSON.stringify({
           messages: messagesPayload,
           context: selectedBoxes.map(b => ({ 
+            id: b.id,
             name: b.name, 
             description: b.description,
             aiSummary: b.aiSummary,
