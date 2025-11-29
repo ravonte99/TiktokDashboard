@@ -80,7 +80,23 @@ export async function POST(req: Request) {
                        // Attempt to fetch posts from the same RapidAPI provider
                        console.log(`Fetching recent videos for ${username} via RapidAPI...`);
                        
-                       const postsUrl = `https://${rapidApiHost}${basePath}/user/posts?${idParam}=${username}&count=10`;
+                       // API23 specific adjustment: endpoint might be /videos instead of /posts
+                       // And sometimes it requires secUid (which we can get from user object)
+                       
+                       let postsEndpoint = 'posts';
+                       let queryParams = `${idParam}=${username}&count=10`;
+
+                       if (rapidApiHost.includes('tiktok-api23')) {
+                           postsEndpoint = 'videos'; // API23 usually uses 'videos'
+                           // If we have secUid from the user object, use it? 
+                           // API23 documentation says uniqueId is fine, but let's try the videos endpoint first.
+                           if (finalUser.secUid) {
+                                console.log('Found secUid, using it for video fetch just in case');
+                                queryParams = `secUid=${finalUser.secUid}&count=10&cursor=0`;
+                           }
+                       }
+                       
+                       const postsUrl = `https://${rapidApiHost}${basePath}/user/${postsEndpoint}?${queryParams}`;
                        console.log(`RapidAPI Posts URL: ${postsUrl}`);
 
                        const postsResponse = await fetch(postsUrl, {
