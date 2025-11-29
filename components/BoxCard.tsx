@@ -28,14 +28,28 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
 
   useEffect(() => {
     // Strict Check:
-    // 1. If store hasn't rehydrated from localStorage yet, DO NOTHING. (Prevents early firing on empty state)
+    // 1. If store hasn't rehydrated, DO NOTHING.
     // 2. If on first mount and summary exists, DO NOTHING.
+    // 3. NEW: If the summary is FRESHER than the last link update, DO NOTHING.
     
     if (!_hasHydrated) return;
 
     if (!hasMounted.current) {
       hasMounted.current = true;
       if (box.aiSummary) return;
+    }
+
+    // Find the latest update time of any link
+    const lastLinkUpdate = box.links.reduce((max, link) => {
+        const linkTime = new Date(link.updatedAt).getTime();
+        return linkTime > max ? linkTime : max;
+    }, 0);
+
+    const lastSummaryTime = box.lastSummarized ? new Date(box.lastSummarized).getTime() : 0;
+
+    // If summary is newer than the latest link change, we don't need to re-run.
+    if (lastSummaryTime > lastLinkUpdate) {
+        return;
     }
 
     // Only summarize if we actually have links
@@ -46,7 +60,7 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
     }, 2000); 
 
     return () => clearTimeout(timer);
-  }, [box.links.length, linksSignature, _hasHydrated]); 
+  }, [box.links.length, linksSignature, _hasHydrated, box.lastSummarized]); 
   // Dependency on length and URLs. Note: deeply nested dependency might be heavy but fine for small lists.
 
   const handleAddLinkSmart = async (e: React.FormEvent) => {
