@@ -33,7 +33,7 @@ If the user asks about specific details not in the summary, look at the resource
 Keep your answers concise and helpful.`;
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-3-pro-preview",
       systemInstruction: systemPrompt
     });
 
