@@ -132,16 +132,28 @@ export async function POST(req: Request) {
                            const postsData = await postsResponse.json();
                            console.log('RapidAPI Posts Keys:', Object.keys(postsData));
                            // Try multiple common fields for video list
-                           const videos = postsData.data?.videos || postsData.itemList || postsData.aweme_list || postsData.data?.itemList;
+                           // If 'data' itself is an array (common in some endpoints), use it.
+                           let videos = Array.isArray(postsData.data) ? postsData.data : (postsData.data?.videos || postsData.itemList || postsData.aweme_list || postsData.data?.itemList);
+                           
+                           // API23 specific: sometimes videos are in 'data.cursor' or just 'data' if it's a list
+                           // Based on logs [ 'data' ], let's inspect what postsData.data IS.
+                           
                            console.log(`Fetched ${videos?.length || 0} videos for ${username}`);
+                           if (videos && videos.length > 0) {
+                                console.log('First video sample:', JSON.stringify(videos[0], null, 2));
+                           }
         
                            if (videos && Array.isArray(videos)) {
                                const videoList = videos.map((v: any) => {
-                                   const caption = v.title || v.desc || 'No caption';
-                                   const plays = v.playCount || v.stats?.playCount || 0;
+                                   // API23 mapping might be different
+                                   const caption = v.desc || v.title || v.description || 'No caption';
+                                   const plays = v.stats?.playCount || v.playCount || v.statistics?.play_count || 0;
                                    return `- "${caption.replace(/\n/g, ' ')}" (${plays} views)`;
                                }).join('\n');
-                               description += `\n\nRECENT VIDEOS:\n${videoList}`;
+                               
+                               const newDescriptionPart = `\n\nRECENT VIDEOS:\n${videoList}`;
+                               description += newDescriptionPart;
+                               console.log('Generated Description Snippet:', newDescriptionPart.substring(0, 100) + '...');
                            }
                        } else {
                            console.warn(`RapidAPI posts fetch failed: ${postsResponse.status} ${postsResponse.statusText}`);
