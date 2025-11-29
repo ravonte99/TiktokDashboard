@@ -16,7 +16,16 @@ export const ChatInterface: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Filter selected boxes, but ALWAYS include "My Content" if it exists and has summary/links
+  const myContentBox = boxes.find(b => b.name === "My Content");
   const selectedBoxes = boxes.filter((box) => selectedBoxIds.includes(box.id));
+  
+  // Merge active context: Selected Boxes + My Content (if available)
+  // Remove duplicates if user somehow selected "My Content" manually (though it's hidden from grid)
+  const activeContext = [...selectedBoxes];
+  if (myContentBox && !selectedBoxes.find(b => b.id === myContentBox.id)) {
+      activeContext.push(myContentBox);
+  }
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -55,7 +64,7 @@ export const ChatInterface: React.FC = () => {
         },
         body: JSON.stringify({
           messages: messagesPayload,
-          context: selectedBoxes.map(b => ({ 
+          context: activeContext.map(b => ({ 
             id: b.id,
             name: b.name, 
             description: b.description,
@@ -120,10 +129,10 @@ export const ChatInterface: React.FC = () => {
         {/* Context Indicator */}
         <div className="flex items-center gap-2 text-xs overflow-x-auto pb-1 scrollbar-none">
           <span className="text-muted-foreground shrink-0">Context:</span>
-          {selectedBoxes.length > 0 ? (
-            selectedBoxes.map(box => (
+          {activeContext.length > 0 ? (
+            activeContext.map(box => (
               <Badge key={box.id} variant={box.aiSummary ? "default" : "secondary"} className="shrink-0 gap-1 text-[10px] px-2 py-0.5 h-5">
-                {box.aiSummary ? <Sparkles className="w-2 h-2" /> : <Box className="w-2 h-2" />}
+                {box.name === "My Content" ? <User className="w-2 h-2" /> : (box.aiSummary ? <Sparkles className="w-2 h-2" /> : <Box className="w-2 h-2" />)}
                 {box.name}
               </Badge>
             ))
@@ -218,7 +227,7 @@ export const ChatInterface: React.FC = () => {
                   handleSend(e);
                 }
               }}
-              placeholder={selectedBoxes.length > 0 ? "Ask about the selected content..." : "Ask a general question..."}
+              placeholder={activeContext.length > 0 ? "Ask about the selected content..." : "Ask a general question..."}
               className="min-h-[48px] max-h-[150px] pr-12 bg-muted/30 border-input/50 focus:bg-background transition-colors rounded-xl resize-none py-3"
               disabled={isLoading}
             />
