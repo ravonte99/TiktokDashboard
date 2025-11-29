@@ -55,11 +55,22 @@ export async function POST(req: Request) {
 
             if (response.ok) {
                const data = await response.json();
-               const user = data.data?.user;
-               const stats = data.data?.stats;
+               
+               // Debug log to see structure
+               console.log('RapidAPI Response Keys:', Object.keys(data));
+               if (data.userInfo) console.log('Found data.userInfo');
+               if (data.data) console.log('Found data.data');
 
-               if (user) {
-                   let description = `TIKTOK PROFILE: ${user.nickname} (@${user.uniqueId})\nBIO: ${user.signature}`;
+               // API23 specific mapping
+               const user = data.userInfo?.user || data.data?.user || data.userInfo;
+               const stats = data.userInfo?.stats || data.data?.stats;
+               
+               // API23 often puts user info directly in userInfo object without a nested 'user' key
+               const finalUser = user?.uniqueId ? user : (data.userInfo || user); 
+
+               if (finalUser && finalUser.uniqueId) {
+                   console.log(`Found user: ${finalUser.uniqueId}`);
+                   let description = `TIKTOK PROFILE: ${finalUser.nickname} (@${finalUser.uniqueId})\nBIO: ${finalUser.signature}`;
                    if (stats) {
                        description += `\nSTATS: ${stats.followerCount} Followers, ${stats.heartCount} Likes`;
                    }
