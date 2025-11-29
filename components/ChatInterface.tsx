@@ -7,6 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export const ChatInterface: React.FC = () => {
   const { chatHistory, addMessage, selectedBoxIds, boxes } = useStore();
@@ -153,9 +155,16 @@ export const ChatInterface: React.FC = () => {
                       ? 'bg-primary text-primary-foreground rounded-br-none' 
                       : 'bg-muted/50 border border-border rounded-bl-none'
                   }`}>
-                    {msg.content.split('\n').map((line, i) => (
-                      <p key={i} className="mb-1 last:mb-0">{line}</p>
-                    ))}
+                    {msg.role === 'user' ? (
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                    ) : (
+                        <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0"
+                        >
+                            {msg.content}
+                        </ReactMarkdown>
+                    )}
                   </div>
                   <span className="text-[10px] text-muted-foreground px-1">
                     {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
