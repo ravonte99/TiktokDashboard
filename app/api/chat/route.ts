@@ -16,7 +16,7 @@ async function queryBoxAgent(box: any, question: string) {
   if (box.links && box.links.length > 0) {
     box.links.forEach((l: any, i: number) => {
         contextContent += `${i+1}. [${l.type}] ${l.title || 'Untitled'} (${l.url})\n`;
-        if (l.description) contextContent += `   Details: ${l.description.substring(0, 300)}...\n`; // Truncate long descriptions for context window efficiency
+        if (l.description) contextContent += `   Details: ${l.description.substring(0, 1500)}...\n`; // Increased limit for video lists
     });
   } else {
     contextContent += "No specific links in this box.\n";

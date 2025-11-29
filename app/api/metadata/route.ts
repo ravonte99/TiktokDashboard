@@ -40,9 +40,35 @@ export async function POST(req: Request) {
                    if (stats) {
                        description += `\nSTATS: ${stats.followerCount} Followers, ${stats.heartCount} Likes`;
                    }
+
+                   // Fetch recent videos to give context about content style
+                   try {
+                       // Attempt to fetch posts from the same RapidAPI provider
+                       const postsResponse = await fetch(`https://tiktok-scraper7.p.rapidapi.com/user/posts?unique_id=${username}&count=10`, {
+                           method: 'GET',
+                           headers: {
+                               'x-rapidapi-key': rapidApiKey,
+                               'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com'
+                           }
+                       });
+        
+                       if (postsResponse.ok) {
+                           const postsData = await postsResponse.json();
+                           const videos = postsData.data?.videos;
+        
+                           if (videos && Array.isArray(videos)) {
+                               const videoList = videos.map((v: any) => {
+                                   const caption = v.title || v.desc || 'No caption';
+                                   const plays = v.playCount || v.stats?.playCount || 0;
+                                   return `- "${caption.replace(/\n/g, ' ')}" (${plays} views)`;
+                               }).join('\n');
+                               description += `\n\nRECENT VIDEOS:\n${videoList}`;
+                           }
+                       }
+                   } catch (postError) {
+                       console.warn('Failed to fetch TikTok posts:', postError);
+                   }
                    
-                   // Optional: Fetch recent videos if the API supports it easily (usually separate endpoint)
-                   // For now, just the profile info is a huge win over nothing.
                    return NextResponse.json({ 
                        title: `${user.nickname} (@${user.uniqueId}) on TikTok`, 
                        description 
