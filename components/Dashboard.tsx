@@ -11,12 +11,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Layout, Menu, Plus } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const { boxes } = useStore();
+  const { boxes, fetchBoxes } = useStore();
   const [mounted, setMounted] = useState(false);
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    fetchBoxes(); // Fetch initial data from API
   }, []);
 
   if (!mounted) {

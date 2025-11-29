@@ -7,7 +7,8 @@ export interface LinkItem {
   title?: string; // Fetched title
   description?: string; // Fetched meta description
   thumbnailUrl?: string; 
-  createdAt: number;
+  fetchedAt?: string; // ISO Date string
+  createdAt: number | string; // Support both for compatibility during migration
 }
 
 export interface Box {
@@ -15,9 +16,9 @@ export interface Box {
   name: string;
   description?: string; // User defined description
   aiSummary?: string; // LLM generated summary of the content
-  lastSummarized?: number;
+  lastSummarized?: number | string; // Support ISO string from DB
   links: LinkItem[];
-  createdAt: number;
+  createdAt: number | string;
 }
 
 export interface ChatMessage {

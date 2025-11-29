@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Box {
+  id               String   @id @default(uuid())
+  name             String
+  description      String?
+  aiSummary        String?
+  lastSummarized   DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  links            Link[]
+}
+
+model Link {
+  id           String   @id @default(uuid())
+  url          String
+  type         String
+  title        String?
+  description  String?
+  thumbnailUrl String?
+  fetchedAt    DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  boxId        String
+  box          Box      @relation(fields: [boxId], references: [id], onDelete: Cascade)
+
+  @@index([boxId])
+}
