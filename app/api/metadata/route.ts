@@ -87,19 +87,14 @@ export async function POST(req: Request) {
                        let queryParams = `${idParam}=${username}&count=10`;
 
                        if (rapidApiHost.includes('tiktok-api23')) {
-                           postsEndpoint = 'posts'; // It seems it IS posts, but let's check the param
-                           // Based on common patterns for this specific API (Lundehund), it often uses 'uniqueId'
-                           // But the previous error 400 on /api/user/posts?uniqueId=... suggests either:
-                           // 1. It needs secUid
-                           // 2. Or the endpoint is actually /api/user/videos
-                           // Let's try to use secUid if we have it, as that's a very common requirement for "posts" endpoints to avoid scraping blocks.
+                           postsEndpoint = 'posts'; // Stick to posts, try uniqueId first as documentation implies
+                           queryParams = `uniqueId=${username}&count=10`;
                            
                            if (finalUser.secUid) {
-                                console.log('Found secUid, switching to secUid parameter');
-                                queryParams = `secUid=${finalUser.secUid}&count=10&cursor=0`;
-                           } else {
-                               // If no secUid, stick with uniqueId but maybe ensure count is valid
-                               queryParams = `uniqueId=${username}&count=10&cursor=0`;
+                                // If uniqueId fails or as a secondary strategy, but documentation usually says uniqueId.
+                                // Actually, some users report /user/posts?uniqueId works.
+                                // Let's try forcing count=10 and cursor=0
+                                queryParams = `uniqueId=${username}&count=10&cursor=0`;
                            }
                        }
                        
@@ -117,17 +112,20 @@ export async function POST(req: Request) {
                        });
 
                        if (!postsResponse.ok && rapidApiHost.includes('tiktok-api23')) {
-                           console.log('First video fetch failed, trying fallback endpoint...');
-                           // Try /api/user/posts with uniqueId if secUid failed, or vice versa
-                           const fallbackUrl = `https://${rapidApiHost}${basePath}/user/posts?uniqueId=${username}&count=10`;
-                           postsResponse = await fetch(fallbackUrl, {
-                               method: 'GET',
-                               headers: {
-                                   'x-rapidapi-key': rapidApiKey,
-                                   'x-rapidapi-host': rapidApiHost
-                               },
-                               cache: 'no-store'
-                           });
+                           console.log('First video fetch failed, trying fallback endpoint with secUid if available...');
+                           // Try /api/user/posts with secUid if uniqueId failed
+                           if (finalUser.secUid) {
+                               const fallbackUrl = `https://${rapidApiHost}${basePath}/user/posts?secUid=${finalUser.secUid}&count=10&cursor=0`;
+                               console.log(`RapidAPI Fallback Posts URL: ${fallbackUrl}`);
+                               postsResponse = await fetch(fallbackUrl, {
+                                   method: 'GET',
+                                   headers: {
+                                       'x-rapidapi-key': rapidApiKey,
+                                       'x-rapidapi-host': rapidApiHost
+                                   },
+                                   cache: 'no-store'
+                               });
+                           }
                        }
         
                        if (postsResponse.ok) {
