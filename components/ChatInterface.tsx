@@ -18,9 +18,9 @@ export const ChatInterface: React.FC = () => {
 
   useEffect(() => {
     if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      const scrollViewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollViewport) {
+        scrollViewport.scrollTop = scrollViewport.scrollHeight;
       }
     }
   }, [chatHistory, isLoading]);
@@ -53,7 +53,6 @@ export const ChatInterface: React.FC = () => {
         },
         body: JSON.stringify({
           messages: messagesPayload,
-          // Pass rich context
           context: selectedBoxes.map(b => ({ 
             name: b.name, 
             description: b.description,
@@ -115,68 +114,70 @@ export const ChatInterface: React.FC = () => {
       </div>
 
       {/* Chat Area */}
-      <ScrollArea className="flex-1 p-4 pb-24" ref={scrollRef}>
-        <div className="flex flex-col gap-6 max-w-2xl mx-auto">
-          {chatHistory.length === 0 && (
-            <div className="flex flex-col items-center justify-center text-center mt-20 gap-4">
-              <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center animate-pulse">
-                <Sparkles className="w-8 h-8 text-primary/50" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="font-medium text-lg">Ready to help</h3>
-                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                  Select categories from the left to provide context.
-                  {selectedBoxes.some(b => b.aiSummary) ? 
-                    " Great! I have analyzed summaries for some contexts." : 
-                    " Tip: Click 'Generate Context Summary' on a card for smarter answers."}
-                </p>
-              </div>
-            </div>
-          )}
-          
-          {chatHistory.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-            >
-              <Avatar className="h-8 w-8 shrink-0 mt-1">
-                {msg.role === 'user' ? (
-                  <AvatarFallback className="bg-primary text-primary-foreground"><User className="w-4 h-4" /></AvatarFallback>
-                ) : (
-                  <AvatarFallback className="bg-primary/10 text-primary"><Bot className="w-4 h-4" /></AvatarFallback>
-                )}
-              </Avatar>
-              
-              <div className={`flex flex-col gap-1 max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                  msg.role === 'user' 
-                    ? 'bg-primary text-primary-foreground rounded-br-none' 
-                    : 'bg-muted/50 border border-border rounded-bl-none'
-                }`}>
-                  {msg.content.split('\n').map((line, i) => (
-                    <p key={i} className="mb-1 last:mb-0">{line}</p>
-                  ))}
+      <div className="flex-1 relative min-h-0">
+        <ScrollArea className="h-full p-4 pb-24" ref={scrollRef}>
+          <div className="flex flex-col gap-6 max-w-2xl mx-auto pb-8">
+            {chatHistory.length === 0 && (
+              <div className="flex flex-col items-center justify-center text-center mt-20 gap-4">
+                <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center animate-pulse">
+                  <Sparkles className="w-8 h-8 text-primary/50" />
                 </div>
-                <span className="text-[10px] text-muted-foreground px-1">
-                  {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </span>
+                <div className="space-y-2">
+                  <h3 className="font-medium text-lg">Ready to help</h3>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                    Select categories from the left to provide context.
+                    {selectedBoxes.some(b => b.aiSummary) ? 
+                      " Great! I have analyzed summaries for some contexts." : 
+                      " Tip: Click 'Generate Context Summary' on a card for smarter answers."}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-
-          {isLoading && (
-             <div className="flex gap-4">
+            )}
+            
+            {chatHistory.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+              >
                 <Avatar className="h-8 w-8 shrink-0 mt-1">
-                  <AvatarFallback className="bg-primary/10 text-primary"><Bot className="w-4 h-4" /></AvatarFallback>
+                  {msg.role === 'user' ? (
+                    <AvatarFallback className="bg-primary text-primary-foreground"><User className="w-4 h-4" /></AvatarFallback>
+                  ) : (
+                    <AvatarFallback className="bg-primary/10 text-primary"><Bot className="w-4 h-4" /></AvatarFallback>
+                  )}
                 </Avatar>
-                <div className="bg-muted/50 border border-border rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Thinking...</span>
+                
+                <div className={`flex flex-col gap-1 max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                  <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                    msg.role === 'user' 
+                      ? 'bg-primary text-primary-foreground rounded-br-none' 
+                      : 'bg-muted/50 border border-border rounded-bl-none'
+                  }`}>
+                    {msg.content.split('\n').map((line, i) => (
+                      <p key={i} className="mb-1 last:mb-0">{line}</p>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground px-1">
+                    {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </span>
                 </div>
-             </div>
-          )}
-        </div>
-      </ScrollArea>
+              </div>
+            ))}
+
+            {isLoading && (
+               <div className="flex gap-4">
+                  <Avatar className="h-8 w-8 shrink-0 mt-1">
+                    <AvatarFallback className="bg-primary/10 text-primary"><Bot className="w-4 h-4" /></AvatarFallback>
+                  </Avatar>
+                  <div className="bg-muted/50 border border-border rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Thinking...</span>
+                  </div>
+               </div>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
 
       {/* Input Area */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-background z-30 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
