@@ -132,7 +132,9 @@ export async function POST(req: Request) {
         
                        if (postsResponse.ok) {
                            const postsData = await postsResponse.json();
-                           const videos = postsData.data?.videos;
+                           console.log('RapidAPI Posts Keys:', Object.keys(postsData));
+                           // Try multiple common fields for video list
+                           const videos = postsData.data?.videos || postsData.itemList || postsData.aweme_list || postsData.data?.itemList;
                            console.log(`Fetched ${videos?.length || 0} videos for ${username}`);
         
                            if (videos && Array.isArray(videos)) {
