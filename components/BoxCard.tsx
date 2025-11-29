@@ -118,6 +118,21 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
 
   const handleRefreshLink = async (link: LinkItem) => {
     if (refreshingLinkIds.includes(link.id)) return;
+
+    // 3-Day Cache Logic: Check if we fetched recently
+    if (link.fetchedAt) {
+        const fetchedDate = new Date(link.fetchedAt);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - fetchedDate.getTime());
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+        if (diffDays < 3) {
+            const confirmRefresh = window.confirm(
+                `This link was updated ${Math.floor(diffDays)} days ago (less than 3 days). Force refresh?`
+            );
+            if (!confirmRefresh) return;
+        }
+    }
     
     setRefreshingLinkIds(prev => [...prev, link.id]);
     try {
