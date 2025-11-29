@@ -39,13 +39,13 @@ export const CreateBoxForm: React.FC = () => {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button className="gap-2 shadow-md hover:shadow-lg transition-all">
-          <Plus className="w-4 h-4" /> Create New Box
+          <Plus className="w-4 h-4" /> Create Context
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create New Box</DialogTitle>
+            <DialogTitle>Create New Context</DialogTitle>
             <DialogDescription>
               Create a new category to organize your links and content.
             </DialogDescription>
@@ -72,7 +72,7 @@ export const CreateBoxForm: React.FC = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={!name.trim()}>Create Box</Button>
+            <Button type="submit" disabled={!name.trim()}>Create Context</Button>
           </DialogFooter>
         </form>
       </DialogContent>

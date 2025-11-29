@@ -127,8 +127,8 @@ export const ChatInterface: React.FC = () => {
                 <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                   Select categories from the left to provide context.
                   {selectedBoxes.some(b => b.aiSummary) ? 
-                    " Great! I have analyzed summaries for some boxes." : 
-                    " Tip: Click 'Generate Context Summary' on a box for smarter answers."}
+                    " Great! I have analyzed summaries for some contexts." : 
+                    " Tip: Click 'Generate Context Summary' on a card for smarter answers."}
                 </p>
               </div>
             </div>

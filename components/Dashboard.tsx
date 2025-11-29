@@ -64,7 +64,7 @@ export const Dashboard: React.FC = () => {
             {/* Stats / Quick View (Optional placeholder) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                <div className="bg-muted/20 border border-border rounded-lg p-4">
-                 <p className="text-sm text-muted-foreground">Total Boxes</p>
+                 <p className="text-sm text-muted-foreground">Total Contexts</p>
                  <p className="text-2xl font-bold">{boxes.length}</p>
                </div>
                <div className="bg-muted/20 border border-border rounded-lg p-4">
@@ -89,7 +89,7 @@ export const Dashboard: React.FC = () => {
                      <Plus className="w-8 h-8 text-muted-foreground" />
                    </div>
                    <div className="space-y-1">
-                     <h4 className="font-medium">No boxes yet</h4>
+                     <h4 className="font-medium">No contexts yet</h4>
                      <p className="text-sm text-muted-foreground">Create a category to start adding links.</p>
                    </div>
                  </div>
