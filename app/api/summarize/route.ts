@@ -21,7 +21,7 @@ Please generate a concise but insightful summary (max 150 words) of what this co
 Highlight common themes, specific topics covered, or the potential "vibe" of this content. 
 This summary will be used to provide context to another AI chatbot.`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); // Switch to Flash for summarization to avoid Rate Limits
 
     const result = await model.generateContent(prompt);
     const response = await result.response;

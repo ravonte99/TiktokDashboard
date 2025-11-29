@@ -23,21 +23,23 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
   const [refreshingLinkIds, setRefreshingLinkIds] = useState<string[]>([]);
 
   // Effect to trigger auto-summarization when links change
-  const linksSignature = box.links.map(l => l.url).join(',');
+  const linksSignature = box.links.map(l => l.url + l.description).join(','); // Include description in signature so metadata updates trigger it
   const hasMounted = useRef(false);
 
   useEffect(() => {
-    // Skip the very first run on mount if we already have a summary
-    // This prevents re-summarizing everything just because the page refreshed
+    // strict check: if we have a summary and it was generated AFTER the last link change, do nothing.
+    // But since we don't track "lastLinkChangeTime" perfectly, we use the mount check.
     if (!hasMounted.current) {
       hasMounted.current = true;
+      // On mount, if we already have a summary, DO NOT summarize.
       if (box.aiSummary) return;
     }
 
+    // Only summarize if we actually have links
+    if (box.links.length === 0) return;
+
     const timer = setTimeout(() => {
-      if (box.links.length > 0) {
         handleSummarize(true); 
-      }
     }, 2000); 
 
     return () => clearTimeout(timer);
