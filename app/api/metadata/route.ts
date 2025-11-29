@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
+import TikTokScraper from 'tiktok-scraper-ts';
 
 export async function POST(req: Request) {
   try {
@@ -10,6 +11,43 @@ export async function POST(req: Request) {
     }
 
     const isYoutubeChannel = url.includes('youtube.com/@') || url.includes('youtube.com/channel/') || url.includes('youtube.com/c/');
+    const isTiktokProfile = url.includes('tiktok.com/@');
+
+    if (isTiktokProfile) {
+        try {
+            // Extract username from URL (remove query params if any)
+            const username = url.split('@')[1].split('?')[0].split('/')[0];
+            
+            // Use dedicated library to fetch user details
+            const user = await TikTokScraper.getUserProfile(username);
+            
+            let description = `TIKTOK PROFILE: ${user.userInfo.user.nickname} (@${user.userInfo.user.uniqueId})\nBIO: ${user.userInfo.user.signature}`;
+            description += `\nSTATS: ${user.userInfo.stats.followerCount} Followers, ${user.userInfo.stats.heartCount} Likes`;
+
+            // Try to fetch videos if available in the library
+            try {
+                const posts = await TikTokScraper.getUserPosts(username, { count: 10 });
+                if (posts && posts.length > 0) {
+                    const videoTitles = posts.map(p => p.description).filter(d => d);
+                    if (videoTitles.length > 0) {
+                        description += `\n\nRECENT VIDEOS:\n- ${videoTitles.join('\n- ')}`;
+                    }
+                }
+            } catch (videoError) {
+                console.warn('Failed to fetch TikTok videos:', videoError);
+            }
+            
+            return NextResponse.json({ 
+                title: `${user.userInfo.user.nickname} on TikTok`, 
+                description 
+            });
+
+        } catch (e) {
+            console.error('TikTok scrape failed:', e);
+            // Fallback to basic generic fetch if library fails (TikTok blocks often)
+            return genericFetch(url);
+        }
+    }
 
     if (isYoutubeChannel) {
       try {
@@ -44,6 +82,18 @@ export async function POST(req: Request) {
       }
     }
 
+    return genericFetch(url);
+
+  } catch (error) {
+    console.error('Metadata fetch error:', error);
+    // Return empty on error to allow UI to continue
+    // Assuming 'url' is available in scope, but it was destructured inside try. 
+    // For safety, just return empty strings.
+    return NextResponse.json({ title: '', description: '' });
+  }
+}
+
+async function genericFetch(url: string) {
     // Standard fallback for single videos / other sites
     const response = await fetch(url, {
       headers: {
@@ -62,10 +112,6 @@ export async function POST(req: Request) {
     const description = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '';
 
     return NextResponse.json({ title, description });
-  } catch (error) {
-    console.error('Metadata fetch error:', error);
-    return NextResponse.json({ title: url, description: '' });
-  }
 }
 
 function parseChannelPage(html: string, url: string) {
