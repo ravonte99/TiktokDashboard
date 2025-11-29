@@ -11,9 +11,11 @@ interface AppState {
   addBox: (box: Omit<Box, 'id' | 'createdAt' | 'links'>) => void;
   updateBox: (id: string, updates: Partial<Omit<Box, 'id' | 'createdAt' | 'links'>>) => void;
   deleteBox: (id: string) => void;
+  setBoxSummary: (id: string, summary: string) => void;
   
   // Link Actions
   addLinkToBox: (boxId: string, link: Omit<LinkItem, 'id' | 'createdAt'>) => void;
+  updateLinkInBox: (boxId: string, linkId: string, updates: Partial<LinkItem>) => void;
   removeLinkFromBox: (boxId: string, linkId: string) => void;
   
   // Selection Actions
@@ -50,6 +52,12 @@ export const useStore = create<AppState>()(
         ),
       })),
 
+      setBoxSummary: (id, summary) => set((state) => ({
+        boxes: state.boxes.map((box) =>
+          box.id === id ? { ...box, aiSummary: summary, lastSummarized: Date.now() } : box
+        ),
+      })),
+
       deleteBox: (id) => set((state) => ({
         boxes: state.boxes.filter((box) => box.id !== id),
         selectedBoxIds: state.selectedBoxIds.filter((boxId) => boxId !== id),
@@ -68,6 +76,19 @@ export const useStore = create<AppState>()(
                     createdAt: Date.now(),
                   },
                 ],
+              }
+            : box
+        ),
+      })),
+
+      updateLinkInBox: (boxId, linkId, updates) => set((state) => ({
+        boxes: state.boxes.map((box) =>
+          box.id === boxId
+            ? {
+                ...box,
+                links: box.links.map((link) =>
+                  link.id === linkId ? { ...link, ...updates } : link
+                ),
               }
             : box
         ),
@@ -110,4 +131,3 @@ export const useStore = create<AppState>()(
     }
   )
 );
-

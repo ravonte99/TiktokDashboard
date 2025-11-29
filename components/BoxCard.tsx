@@ -1,35 +1,128 @@
 import React, { useState } from 'react';
 import { Box, LinkType } from '@/types';
 import { useStore } from '@/store/useStore';
-import { Trash2, Plus, Check, ExternalLink, Youtube, Instagram, Video, Link as LinkIcon } from 'lucide-react';
+import { Trash2, Plus, Check, ExternalLink, Youtube, Instagram, Video, Link as LinkIcon, RefreshCw, Sparkles, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 interface BoxCardProps {
   box: Box;
 }
 
 export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
-  const { deleteBox, toggleBoxSelection, selectedBoxIds, removeLinkFromBox, addLinkToBox } = useStore();
+  const { deleteBox, toggleBoxSelection, selectedBoxIds, removeLinkFromBox, addLinkToBox, updateLinkInBox, setBoxSummary } = useStore();
   const isSelected = selectedBoxIds.includes(box.id);
   const [isAddingLink, setIsAddingLink] = useState(false);
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newLinkType, setNewLinkType] = useState<LinkType>('youtube');
+  const [isSummarizing, setIsSummarizing] = useState(false);
 
-  const handleAddLink = (e: React.FormEvent) => {
+  const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLinkUrl) return;
     
+    // Optimistic add
+    const tempId = crypto.randomUUID(); // Won't be used in store action but good for thinking
     addLinkToBox(box.id, {
       url: newLinkUrl,
       type: newLinkType,
-      title: newLinkUrl, 
+      title: newLinkUrl, // Placeholder
     });
+
+    const urlToFetch = newLinkUrl;
     setNewLinkUrl('');
     setIsAddingLink(false);
+
+    // Fetch metadata in background
+    try {
+      const res = await fetch('/api/metadata', {
+        method: 'POST',
+        body: JSON.stringify({ url: urlToFetch }),
+      });
+      if (res.ok) {
+        const meta = await res.json();
+        if (meta.title) {
+          // Find the link we just added (this is tricky with the current store, 
+          // so we might need to just update the last added link or change store to return ID.
+          // For now, let's just update by matching URL - crude but works for MVP)
+          const link = box.links.find(l => l.url === urlToFetch); // This won't work immediately because box prop is stale? 
+          // Actually, we need to wait for store update or reload. 
+          // Better approach: Just fetch FIRST, then add.
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Better Add Link Handler: Fetch first (with loading state ideally), then add
+  const handleAddLinkSmart = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLinkUrl) return;
+
+    const url = newLinkUrl;
+    setNewLinkUrl('');
+    setIsAddingLink(false);
+
+    // Add placeholder immediately
+    const placeholderTitle = url;
+    addLinkToBox(box.id, {
+      url,
+      type: newLinkType,
+      title: placeholderTitle,
+    });
+
+    // Fetch real metadata
+    try {
+      const res = await fetch('/api/metadata', {
+        method: 'POST',
+        body: JSON.stringify({ url }),
+      });
+      const meta = await res.json();
+      
+      // We need to find the link ID to update it. 
+      // Since we don't get the ID back from addLinkToBox in the current store implementation,
+      // we'll just iterate to find the matching URL. (In a real app, return ID from action).
+      // We can use a slightly hacky way: access the store state directly to find it.
+      const currentBox = useStore.getState().boxes.find(b => b.id === box.id);
+      const link = currentBox?.links.find(l => l.url === url && l.title === placeholderTitle);
+      
+      if (link && meta.title) {
+        updateLinkInBox(box.id, link.id, {
+          title: meta.title,
+          description: meta.description
+        });
+      }
+    } catch (e) {
+      console.error("Failed to fetch metadata", e);
+    }
+  };
+
+  const handleSummarize = async () => {
+    if (box.links.length === 0) return;
+    setIsSummarizing(true);
+    try {
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        body: JSON.stringify({
+          links: box.links,
+          boxName: box.name,
+          boxDescription: box.description
+        }),
+      });
+      const data = await res.json();
+      if (data.summary) {
+        setBoxSummary(box.id, data.summary);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSummarizing(false);
+    }
   };
 
   const getIcon = (type: LinkType) => {
@@ -42,10 +135,10 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
   };
 
   return (
-    <Card className={`transition-all duration-200 ${isSelected ? 'ring-2 ring-primary border-primary/50 shadow-lg' : 'hover:border-primary/30'}`}>
+    <Card className={`flex flex-col h-full transition-all duration-200 ${isSelected ? 'ring-2 ring-primary border-primary/50 shadow-lg' : 'hover:border-primary/30'}`}>
       <CardHeader className="p-4 pb-2">
         <div className="flex justify-between items-start">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 overflow-hidden">
             <Button
               variant={isSelected ? "default" : "outline"}
               size="icon"
@@ -54,31 +147,68 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
             >
               {isSelected && <Check className="h-3 w-3" />}
             </Button>
-            <div>
-              <CardTitle className="text-lg font-semibold leading-none">{box.name}</CardTitle>
-              {box.description && <CardDescription className="text-xs mt-1">{box.description}</CardDescription>}
+            <div className="min-w-0">
+              <CardTitle className="text-lg font-semibold leading-none truncate">{box.name}</CardTitle>
+              {box.description && <CardDescription className="text-xs mt-1 truncate">{box.description}</CardDescription>}
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => deleteBox(box.id)}>
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={() => deleteBox(box.id)}>
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       </CardHeader>
+
+      {/* AI Summary Section */}
+      {box.aiSummary ? (
+        <div className="px-4 py-2 bg-primary/5 border-y border-primary/10">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-3 h-3 text-primary" />
+            <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">AI Context</span>
+            <span className="text-[10px] text-muted-foreground ml-auto">
+              {box.lastSummarized ? new Date(box.lastSummarized).toLocaleDateString() : ''}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground line-clamp-3 italic">
+            "{box.aiSummary}"
+          </p>
+        </div>
+      ) : (
+        <div className="px-4 py-2">
+           <Button 
+             variant="secondary" 
+             size="sm" 
+             className="w-full h-7 text-xs gap-2 bg-muted/50 hover:bg-muted"
+             onClick={handleSummarize}
+             disabled={isSummarizing || box.links.length === 0}
+           >
+             {isSummarizing ? (
+               <RefreshCw className="w-3 h-3 animate-spin" />
+             ) : (
+               <Sparkles className="w-3 h-3" />
+             )}
+             {isSummarizing ? 'Analyzing...' : 'Generate Context Summary'}
+           </Button>
+        </div>
+      )}
       
-      <CardContent className="p-4 pt-2 flex flex-col gap-2 max-h-60 overflow-y-auto scrollbar-thin">
+      <CardContent className="p-4 pt-2 flex-1 flex flex-col gap-2 min-h-[100px] max-h-[300px] overflow-y-auto scrollbar-thin">
         {box.links.map((link) => (
-          <div key={link.id} className="group flex items-center justify-between text-sm bg-muted/50 p-2 rounded-md hover:bg-muted transition-colors">
+          <div key={link.id} className="group flex items-center justify-between text-sm bg-muted/30 p-2 rounded-md hover:bg-muted transition-colors border border-transparent hover:border-border">
             <div className="flex items-center gap-2 truncate flex-1">
               {getIcon(link.type)}
-              <span className="truncate text-xs font-medium text-muted-foreground">{link.type}</span>
-              <a href={link.url} target="_blank" rel="noopener noreferrer" className="truncate flex-1 hover:underline text-primary">
-                {link.title || link.url}
-              </a>
+              <div className="flex flex-col truncate">
+                <a href={link.url} target="_blank" rel="noopener noreferrer" className="truncate font-medium hover:underline text-foreground">
+                  {link.title || link.url}
+                </a>
+                {link.description && (
+                  <span className="text-[10px] text-muted-foreground truncate">{link.description}</span>
+                )}
+              </div>
             </div>
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => removeLinkFromBox(box.id, link.id)}
             >
               <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
@@ -86,13 +216,16 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
           </div>
         ))}
         {box.links.length === 0 && (
-          <p className="text-xs text-muted-foreground italic text-center py-2">No items added yet</p>
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-4 opacity-50">
+            <FileText className="w-8 h-8 mb-1" />
+            <p className="text-xs">No content yet</p>
+          </div>
         )}
       </CardContent>
 
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 mt-auto">
         {isAddingLink ? (
-          <form onSubmit={handleAddLink} className="flex flex-col gap-2 w-full p-2 border rounded-md bg-muted/30">
+          <form onSubmit={handleAddLinkSmart} className="flex flex-col gap-2 w-full p-2 border rounded-md bg-background shadow-sm">
             <div className="flex gap-2">
               <Select value={newLinkType} onValueChange={(v) => setNewLinkType(v as LinkType)}>
                 <SelectTrigger className="w-[100px] h-8 text-xs">
@@ -105,7 +238,7 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
                 </SelectContent>
               </Select>
               <Input
-                placeholder="URL..."
+                placeholder="https://..."
                 value={newLinkUrl}
                 onChange={(e) => setNewLinkUrl(e.target.value)}
                 className="h-8 text-xs flex-1"
@@ -122,9 +255,9 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
             variant="outline"
             size="sm"
             onClick={() => setIsAddingLink(true)}
-            className="w-full border-dashed text-muted-foreground hover:text-primary"
+            className="w-full border-dashed text-muted-foreground hover:text-primary hover:border-primary"
           >
-            <Plus className="w-4 h-4 mr-2" /> Add Content
+            <Plus className="w-4 h-4 mr-2" /> Add Link
           </Button>
         )}
       </CardFooter>

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import { Send, Bot, User, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Sparkles, ArrowRight, Loader2, Box } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,8 +40,6 @@ export const ChatInterface: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Prepare messages for the API (history + new message)
-      // We slice the last 10 messages to keep context window manageable for now
       const messagesPayload = chatHistory.slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content
@@ -55,9 +53,11 @@ export const ChatInterface: React.FC = () => {
         },
         body: JSON.stringify({
           messages: messagesPayload,
+          // Pass rich context
           context: selectedBoxes.map(b => ({ 
             name: b.name, 
             description: b.description,
+            aiSummary: b.aiSummary,
             links: b.links.map(l => ({ title: l.title, url: l.url, type: l.type }))
           })),
         }),
@@ -103,7 +103,8 @@ export const ChatInterface: React.FC = () => {
           <span className="text-muted-foreground shrink-0">Context:</span>
           {selectedBoxes.length > 0 ? (
             selectedBoxes.map(box => (
-              <Badge key={box.id} variant="secondary" className="shrink-0 gap-1 text-[10px] px-2 py-0.5 h-5">
+              <Badge key={box.id} variant={box.aiSummary ? "default" : "secondary"} className="shrink-0 gap-1 text-[10px] px-2 py-0.5 h-5">
+                {box.aiSummary ? <Sparkles className="w-2 h-2" /> : <Box className="w-2 h-2" />}
                 {box.name}
               </Badge>
             ))
@@ -124,7 +125,10 @@ export const ChatInterface: React.FC = () => {
               <div className="space-y-2">
                 <h3 className="font-medium text-lg">Ready to help</h3>
                 <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                  Select categories from the left to provide context, then ask any question about your content.
+                  Select categories from the left to provide context.
+                  {selectedBoxes.some(b => b.aiSummary) ? 
+                    " Great! I have analyzed summaries for some boxes." : 
+                    " Tip: Click 'Generate Context Summary' on a box for smarter answers."}
                 </p>
               </div>
             </div>
