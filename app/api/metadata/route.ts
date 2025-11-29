@@ -35,17 +35,22 @@ export async function POST(req: Request) {
             let basePath = '';
             let idParam = 'unique_id'; // Default for most scrapers
 
-            if (rapidApiHost === 'tiktok-api23.p.rapidapi.com') {
+            // Robust check for tiktok-api23
+            if (rapidApiHost.includes('tiktok-api23')) {
                basePath = '/api';
                idParam = 'uniqueId'; // API23 uses camelCase
             }
 
-            const response = await fetch(`https://${rapidApiHost}${basePath}/user/info?${idParam}=${username}`, {
+            const fetchUrl = `https://${rapidApiHost}${basePath}/user/info?${idParam}=${username}`;
+            console.log(`RapidAPI Request URL: ${fetchUrl}`);
+            
+            const response = await fetch(fetchUrl, {
                method: 'GET',
                headers: {
                   'x-rapidapi-key': rapidApiKey,
                   'x-rapidapi-host': rapidApiHost
-               }
+               },
+               cache: 'no-store' // Ensure we don't get cached 400s
             });
 
             if (response.ok) {
@@ -63,12 +68,17 @@ export async function POST(req: Request) {
                    try {
                        // Attempt to fetch posts from the same RapidAPI provider
                        console.log(`Fetching recent videos for ${username} via RapidAPI...`);
-                       const postsResponse = await fetch(`https://${rapidApiHost}${basePath}/user/posts?${idParam}=${username}&count=10`, {
+                       
+                       const postsUrl = `https://${rapidApiHost}${basePath}/user/posts?${idParam}=${username}&count=10`;
+                       console.log(`RapidAPI Posts URL: ${postsUrl}`);
+
+                       const postsResponse = await fetch(postsUrl, {
                            method: 'GET',
                            headers: {
                                'x-rapidapi-key': rapidApiKey,
                                'x-rapidapi-host': rapidApiHost
-                           }
+                           },
+                           cache: 'no-store'
                        });
         
                        if (postsResponse.ok) {
