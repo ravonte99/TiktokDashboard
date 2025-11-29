@@ -115,8 +115,8 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
   return (
     <Card className={`flex flex-col h-full transition-all duration-200 ${isSelected ? 'ring-2 ring-primary border-primary/50 shadow-lg' : 'hover:border-primary/30'}`}>
       <CardHeader className="p-4 pb-2">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-3 overflow-hidden">
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex items-center gap-3 overflow-hidden flex-1">
             <Button
               variant={isSelected ? "default" : "outline"}
               size="icon"
@@ -125,9 +125,9 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
             >
               {isSelected && <Check className="h-3 w-3" />}
             </Button>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <CardTitle className="text-lg font-semibold leading-none truncate">{box.name}</CardTitle>
-              {box.description && <CardDescription className="text-xs mt-1 truncate">{box.description}</CardDescription>}
+              {box.description && <CardDescription className="text-xs mt-1 line-clamp-2 break-words">{box.description}</CardDescription>}
             </div>
           </div>
           <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={() => deleteBox(box.id)}>
