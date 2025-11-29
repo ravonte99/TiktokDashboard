@@ -179,21 +179,21 @@ export const ChatInterface: React.FC = () => {
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-border bg-background">
+      <div className="p-4 border-t border-border bg-background z-20">
         <form onSubmit={handleSend} className="relative max-w-2xl mx-auto flex items-center gap-2">
           <div className="relative flex-1">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={selectedBoxes.length > 0 ? "Ask about the selected content..." : "Ask a general question..."}
-              className="pr-10 h-12 bg-muted/30 border-input/50 focus:bg-background transition-colors rounded-xl"
+              className="pr-10 h-12 bg-muted/30 border-input/50 focus:bg-background transition-colors rounded-xl z-20 relative"
               disabled={isLoading}
             />
             <Button 
               type="submit" 
               size="icon"
               disabled={!input.trim() || isLoading}
-              className="absolute right-1.5 top-1.5 h-9 w-9 rounded-lg transition-all"
+              className="absolute right-1.5 top-1.5 h-9 w-9 rounded-lg transition-all z-30"
             >
               <ArrowRight className="w-4 h-4" />
             </Button>
