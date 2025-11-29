@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import { Send, Bot, User, Sparkles, ArrowRight } from 'lucide-react';
+import { Send, Bot, User, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,42 +11,77 @@ import { Card } from "@/components/ui/card";
 export const ChatInterface: React.FC = () => {
   const { chatHistory, addMessage, selectedBoxIds, boxes } = useStore();
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const selectedBoxes = boxes.filter((box) => selectedBoxIds.includes(box.id));
 
   useEffect(() => {
     if (scrollRef.current) {
-      // Hack to scroll to bottom of ScrollArea viewport
       const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
-  }, [chatHistory]);
+  }, [chatHistory, isLoading]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
+    const userMessage = input.trim();
+    setInput('');
+    
     addMessage({
       role: 'user',
-      content: input,
+      content: userMessage,
     });
 
-    setTimeout(() => {
-      const contextNames = selectedBoxes.map((b) => b.name).join(', ');
-      const responseContent = contextNames 
-        ? `I'm analyzing your request about "${input}" using the context from: **${contextNames}**. \n\nBased on the linked content, here are some insights...`
-        : `I see you're asking about "${input}". Since no boxes are selected, I'm answering from general knowledge. Select some boxes to give me context!`;
+    setIsLoading(true);
 
+    try {
+      // Prepare messages for the API (history + new message)
+      // We slice the last 10 messages to keep context window manageable for now
+      const messagesPayload = chatHistory.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+      messagesPayload.push({ role: 'user', content: userMessage });
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: messagesPayload,
+          context: selectedBoxes.map(b => ({ 
+            name: b.name, 
+            description: b.description,
+            links: b.links.map(l => ({ title: l.title, url: l.url, type: l.type }))
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch response');
+      }
+
+      const data = await response.json();
+      
       addMessage({
         role: 'assistant',
-        content: responseContent,
+        content: data.reply,
       });
-    }, 1000);
-
-    setInput('');
+    } catch (error) {
+      console.error("Chat error:", error);
+      addMessage({
+        role: 'assistant',
+        content: "I'm sorry, I encountered an error while connecting to the AI. Please check your API key and try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -124,6 +159,18 @@ export const ChatInterface: React.FC = () => {
               </div>
             </div>
           ))}
+
+          {isLoading && (
+             <div className="flex gap-4">
+                <Avatar className="h-8 w-8 shrink-0 mt-1">
+                  <AvatarFallback className="bg-primary/10 text-primary"><Bot className="w-4 h-4" /></AvatarFallback>
+                </Avatar>
+                <div className="bg-muted/50 border border-border rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Thinking...</span>
+                </div>
+             </div>
+          )}
         </div>
       </ScrollArea>
 
@@ -134,13 +181,14 @@ export const ChatInterface: React.FC = () => {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about your videos..."
+              placeholder={selectedBoxes.length > 0 ? "Ask about the selected content..." : "Ask a general question..."}
               className="pr-10 h-12 bg-muted/30 border-input/50 focus:bg-background transition-colors rounded-xl"
+              disabled={isLoading}
             />
             <Button 
               type="submit" 
               size="icon"
-              disabled={!input.trim()}
+              disabled={!input.trim() || isLoading}
               className="absolute right-1.5 top-1.5 h-9 w-9 rounded-lg transition-all"
             >
               <ArrowRight className="w-4 h-4" />
