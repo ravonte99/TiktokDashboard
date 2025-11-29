@@ -46,7 +46,6 @@ export const Dashboard: React.FC = () => {
             <h1 className="font-bold text-lg tracking-tight">ContentBrain</h1>
           </div>
           <div className="flex items-center gap-2">
-            <MyContentDialog />
             <ModeToggle />
             <div className="lg:hidden">
               <Button variant="ghost" size="icon" onClick={() => setIsMobileChatOpen(true)}>
@@ -65,7 +64,8 @@ export const Dashboard: React.FC = () => {
                 <h2 className="text-3xl font-bold tracking-tight">Your Knowledge Base</h2>
                 <p className="text-muted-foreground mt-1">Manage your content sources and feed them into the AI.</p>
               </div>
-              <div className="w-full md:w-auto">
+              <div className="w-full md:w-auto flex items-center gap-3">
+                <MyContentDialog />
                 <CreateBoxForm />
               </div>
             </div>

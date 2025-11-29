@@ -75,11 +75,18 @@ export const MyContentDialog: React.FC = () => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 relative">
+        <Button className={`gap-2 relative shadow-md hover:shadow-lg transition-all ${hasLink ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`} variant={hasLink ? "default" : "secondary"}>
            <User className="w-4 h-4" />
-           My Content
-           {hasLink && (
-             <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${isSummarized ? "bg-green-500" : "bg-yellow-500 animate-pulse"}`} />
+           {hasLink ? (
+             <>
+               User Account Connected
+               <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                 <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+               </span>
+             </>
+           ) : (
+             "Connect User Account"
            )}
         </Button>
       </DialogTrigger>
