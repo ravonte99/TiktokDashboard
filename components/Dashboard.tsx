@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Layout, Menu, Plus } from 'lucide-react';
+import { ModeToggle } from '@/components/mode-toggle';
 
 export const Dashboard: React.FC = () => {
   const { boxes, fetchBoxes } = useStore();
@@ -41,10 +42,13 @@ export const Dashboard: React.FC = () => {
             </div>
             <h1 className="font-bold text-lg tracking-tight">ContentBrain</h1>
           </div>
-          <div className="lg:hidden">
-            <Button variant="ghost" size="icon" onClick={() => setIsMobileChatOpen(true)}>
-              <MessageSquare className="w-5 h-5" />
-            </Button>
+          <div className="flex items-center gap-2">
+            <ModeToggle />
+            <div className="lg:hidden">
+              <Button variant="ghost" size="icon" onClick={() => setIsMobileChatOpen(true)}>
+                <MessageSquare className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </header>
 
