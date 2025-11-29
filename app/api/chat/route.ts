@@ -22,7 +22,11 @@ async function queryBoxAgent(box: any, question: string) {
     contextContent += "No specific links in this box.\n";
   }
 
-  const prompt = `Context:\n${contextContent}\n\nUser Question: ${question}\n\nAnswer the question based ONLY on the context provided above. Be concise and specific. If the answer isn't in the context, say so.`;
+  const prompt = `Context:\n${contextContent}\n\nUser Question: ${question}\n\nInstructions:
+  1. Answer the question based ONLY on the context provided above.
+  2. If the context includes a "RECENT VIDEOS" list, use those specific video captions/stats to analyze specific content themes, hooks, and performance.
+  3. If the context ONLY has general profile bio info and NO video list, state clearly: "I only have access to the general profile bio, not the specific video list. Please refresh the link metadata to fetch recent videos."
+  4. Be concise and specific.`;
   
   try {
     const result = await model.generateContent(prompt);

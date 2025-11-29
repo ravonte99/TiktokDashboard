@@ -191,8 +191,11 @@ export const BoxCard: React.FC<BoxCardProps> = ({ box }) => {
             <div className="flex items-center gap-2 truncate flex-1">
               {getIcon(link.type)}
               <div className="flex flex-col truncate">
-                <a href={link.url} target="_blank" rel="noopener noreferrer" className="truncate font-medium hover:underline text-foreground">
+                <a href={link.url} target="_blank" rel="noopener noreferrer" className="truncate font-medium hover:underline text-foreground flex items-center gap-1">
                   {link.title || link.url}
+                  {link.description?.includes('RECENT VIDEOS') && (
+                    <span className="flex h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" title="Detailed content available" />
+                  )}
                 </a>
                 {link.description && (
                   <span className="text-[10px] text-muted-foreground truncate">{link.description}</span>
