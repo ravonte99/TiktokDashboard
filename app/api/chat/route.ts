@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, FunctionDeclarationSchemaType } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
@@ -46,14 +46,14 @@ export async function POST(req: Request) {
       name: "ask_box",
       description: "Ask a specific question to a 'Context Box' (a category of videos/links) to get detailed information from it. Use this when you need to know about the specific contents, themes, or details within a category.",
       parameters: {
-        type: FunctionDeclarationSchemaType.OBJECT,
+        type: SchemaType.OBJECT,
         properties: {
           box_id: {
-            type: FunctionDeclarationSchemaType.STRING,
+            type: SchemaType.STRING,
             description: "The ID of the box to query. (Choose from the available boxes list)",
           },
           question: {
-            type: FunctionDeclarationSchemaType.STRING,
+            type: SchemaType.STRING,
             description: "The specific question to ask this box agent.",
           },
         },
